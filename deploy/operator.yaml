@@ -12,6 +12,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: che-operator
+  labels:
+    app.kubernetes.io/name: che
+    app.kubernetes.io/instance: che
+    app.kubernetes.io/component: che-operator
 spec:
   replicas: 1
   selector:
@@ -26,6 +30,7 @@ spec:
         app.kubernetes.io/name: che
         app.kubernetes.io/instance: che
         app.kubernetes.io/component: che-operator
+        control-plane: controller-manager
     spec:
       containers:
         - name: che-operator
@@ -129,6 +134,37 @@ spec:
             limits:
               memory: 256Mi
               cpu: 500m
+        - name: devworkspace-che-operator
+          image: quay.io/che-incubator/devworkspace-che-operator:ci
+          args:
+            - --enable-leader-election
+          command:
+            - /usr/local/bin/devworkspace-che-operator
+          imagePullPolicy: Always
+          env:
+            - name: WATCH_NAMESPACE
+              value: ""
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: devworkspace-operator
+            - name: CONTROLLER_SERVICE_ACCOUNT_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: RELATED_IMAGE_gateway
+              value: docker.io/traefik:v2.2.8
+            - name: RELATED_IMAGE_gateway_configurer
+              value: quay.io/che-incubator/configbump:0.1.4
+          resources:
+            limits:
+              cpu: 100m
+              memory: 100Mi
+            requests:
+              cpu: 100m
+              memory: 20Mi
       hostIPC: false
       hostNetwork: false
       hostPID: false

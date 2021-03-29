@@ -206,6 +206,34 @@ rules:
       - watch
       - delete
   - apiGroups:
+      - ''
+    resources:
+      - secrets
+    verbs:
+      - list
+      - get
+      - create
+      - delete
+  - apiGroups:
+      - ''
+    resources:
+      - persistentvolumeclaims
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ''
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - create
+      - watch
+      - delete
+  - apiGroups:
       - apps
     resources:
       - deployments
