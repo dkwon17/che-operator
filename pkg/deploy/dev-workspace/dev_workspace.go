@@ -110,6 +110,15 @@ var (
 )
 
 func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
+	for _, syncItem := range syncDwCheItems {
+		done, err := syncItem(deployContext)
+		if !util.IsTestMode() {
+			if !done {
+				return false, err
+			}
+		}
+	}
+
 	if !deployContext.CheCluster.Spec.DevWorkspace.Enable {
 		return true, nil
 	}
@@ -130,15 +139,6 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 	}
 
 	for _, syncItem := range syncItems {
-		done, err := syncItem(deployContext)
-		if !util.IsTestMode() {
-			if !done {
-				return false, err
-			}
-		}
-	}
-
-	for _, syncItem := range syncDwCheItems {
 		done, err := syncItem(deployContext)
 		if !util.IsTestMode() {
 			if !done {
