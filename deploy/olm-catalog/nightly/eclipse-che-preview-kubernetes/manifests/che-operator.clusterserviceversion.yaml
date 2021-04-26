@@ -893,6 +893,7 @@ spec:
                   app.kubernetes.io/instance: che
                   app.kubernetes.io/managed-by: olm
                   app.kubernetes.io/name: che
+                  control-plane: controller-manager
               spec:
                 containers:
                   - command:
@@ -1102,6 +1103,32 @@ spec:
               verbs:
                 - get
                 - list
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps/status
+              verbs:
+                - get
+                - update
+                - patch
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
           serviceAccountName: che-operator
     strategy: deployment
   installModes:
