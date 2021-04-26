@@ -142,7 +142,11 @@ func CreateIfNotExists(deployContext *DeployContext, blueprint metav1.Object) (b
 		return false, err
 	}
 
-	logrus.Infof("Creating a new object: %s, name: %s", getObjectType(blueprint), blueprint.GetName())
+	if blueprint.GetNamespace() == "" {
+		logrus.Infof("Creating a new object: %s, name: %s", getObjectType(blueprint), blueprint.GetName())
+	} else {
+		logrus.Infof("Creating a new object: %s, name: %s, namespace: %s", getObjectType(blueprint), blueprint.GetName(), blueprint.GetNamespace())
+	}
 
 	err = setOwnerReferenceIfNeeded(deployContext, blueprint)
 	if err != nil {

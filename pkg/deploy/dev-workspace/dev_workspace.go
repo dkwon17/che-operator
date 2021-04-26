@@ -37,7 +37,6 @@ import (
 
 var (
 	DevWorkspaceNamespace      = "devworkspace-controller"
-	DevWorkspaceCheNamespace   = "devworkspace-che"
 	DevWorkspaceWebhookName    = "controller.devfile.io"
 	DevWorkspaceServiceAccount = "devworkspace-controller-serviceaccount"
 	DevWorkspaceDeploymentName = "devworkspace-controller-manager"
@@ -102,7 +101,6 @@ var (
 	}
 
 	syncDwCheItems = []func(*deploy.DeployContext) (bool, error){
-		syncDwCheCRD,
 		synDwCheCR,
 		syncDwCheConfigMap,
 		syncDwCheMetricsService,
@@ -293,7 +291,7 @@ func synDwCheCR(deployContext *deploy.DeployContext) (bool, error) {
 
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "che.eclipse.org", Version: "v1alpha1", Kind: "CheManager"})
-	err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-che", Namespace: DevWorkspaceCheNamespace}, obj)
+	err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-che", Namespace: deployContext.CheCluster.Namespace}, obj)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			obj = nil
@@ -310,7 +308,7 @@ func synDwCheCR(deployContext *deploy.DeployContext) (bool, error) {
 			Kind:    "CheManager",
 		})
 		obj.SetName("devworkspace-che")
-		obj.SetNamespace(DevWorkspaceCheNamespace)
+		obj.SetNamespace(deployContext.CheCluster.Namespace)
 
 		err = deployContext.ClusterAPI.Client.Create(context.TODO(), obj)
 		if err != nil {

@@ -244,6 +244,8 @@ updateDWCO() {
       -o ${ROOT_PROJECT_DIR}/deploy/dwco/devworkspace-che-configmap.ConfigMap.yaml
   curl -sL https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-controller-manager-metrics-service.Service.yaml \
       -o ${ROOT_PROJECT_DIR}/deploy/dwco/devworkspace-che-controller-manager-metrics-service.Service.yaml
+  curl -sL https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml
+      -o ${ROOT_PROJECT_DIR}/deploy/dwco/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml
 }
 
 addLicenseHeader() {
