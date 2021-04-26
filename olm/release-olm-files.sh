@@ -36,6 +36,7 @@ downloadLatestReleasedBundleCRCRD() {
   mkdir -p "${STABLE_BUNDLE_PATH}/manifests" "${STABLE_BUNDLE_PATH}/generated/${platform}" "${STABLE_BUNDLE_PATH}/metadata"
   PRE_RELEASE_CSV="${STABLE_BUNDLE_PATH}/generated/${platform}/che-operator.clusterserviceversion.yaml"
   PRE_RELEASE_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/org_v1_che_crd.yaml"
+  PRE_RELEASE_DWCO_CRD="${STABLE_BUNDLE_PATH}/generated/${platform}/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml"
 
   compareResult=$(pysemver compare "${LAST_RELEASE_VERSION}" "7.27.2")
   if [ "${compareResult}" == "1" ]; then
@@ -48,6 +49,12 @@ downloadLatestReleasedBundleCRCRD() {
          -q -O "${PRE_RELEASE_CSV}"
     wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/olm/eclipse-che-preview-${platform}/deploy/olm-catalog/eclipse-che-preview-${platform}/${LAST_RELEASE_VERSION}/eclipse-che-preview-${platform}.crd.yaml" \
           -q -O "${PRE_RELEASE_CRD}"
+  fi
+
+  compareResult=$(pysemver compare "${LAST_RELEASE_VERSION}" "7.30.0")
+  if [ "${compareResult}" == "1" ]; then
+    wget "https://raw.githubusercontent.com/eclipse-che/che-operator/${LAST_RELEASE_VERSION}/deploy/olm-catalog/stable/eclipse-che-preview-${platform}/manifests/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml" \
+        -q -O "${PRE_RELEASE_DWCO_CRD}"
   fi
 }
 
@@ -69,12 +76,14 @@ do
   NIGHTLY_BUNDLE_PATH=$(getBundlePath "${platform}" "nightly")
   LAST_NIGHTLY_CSV="${NIGHTLY_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
   LAST_NIGHTLY_CRD="${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
+  LAST_NIGHTLY_DWCO_CRD="${NIGHTLY_BUNDLE_PATH}/manifests/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml"
   lastPackageNightlyVersion=$(yq -r ".spec.version" "${LAST_NIGHTLY_CSV}")
   echo "[INFO] Last package nightly version: ${lastPackageNightlyVersion}"
 
   STABLE_BUNDLE_PATH=$(getBundlePath "${platform}" "stable")
   RELEASE_CSV="${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
   RELEASE_CRD="${STABLE_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
+  RELEASE_DWCO_CRD="${STABLE_BUNDLE_PATH}/manifests/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml"
 
   setLatestReleasedVersion
   downloadLatestReleasedBundleCRCRD
@@ -98,6 +107,7 @@ do
   -e "s/createdAt:.*$/createdAt: \"$(date -u +%FT%TZ)\"/" "${LAST_NIGHTLY_CSV}" > "${RELEASE_CSV}"
 
   cp "${LAST_NIGHTLY_CRD}" "${RELEASE_CRD}"
+  cp "${LAST_NIGHTLY_DWCO_CRD}" "${RELEASE_DWCO_CRD}"
   cp -rf "${NIGHTLY_BUNDLE_PATH}/bundle.Dockerfile" "${STABLE_BUNDLE_PATH}"
   cp -rf "${NIGHTLY_BUNDLE_PATH}/metadata" "${STABLE_BUNDLE_PATH}"
 
@@ -124,6 +134,9 @@ do
   if [[ -n "${PRE_RELEASE_CSV}" ]] && [[ -n "${PRE_RELEASE_CRD}" ]]; then
     diff -u "${PRE_RELEASE_CSV}" "${RELEASE_CSV}" > "${RELEASE_CSV}.diff" || true
     diff -u "${PRE_RELEASE_CRD}" "${RELEASE_CRD}" > "${RELEASE_CRD}.diff" || true
+  fi
+  if [[ -n "${PRE_RELEASE_DWCO_CRD}" ]]; then
+    diff -u "${PRE_RELEASE_DWCO_CRD}" "${RELEASE_DWCO_CRD}" > "${RELEASE_DWCO_CRD}.diff" || true
   fi
 done
 

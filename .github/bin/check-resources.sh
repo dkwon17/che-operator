@@ -130,11 +130,31 @@ checkOperatorYaml() {
   popd || true
 }
 
+checkDWCO() {
+  # files to check
+  local DWCO_CRD="deploy/dwco/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml"
+  local CWCO_CONFIGMAP="deploy/dwco/devworkspace-che-configmap.ConfigMap.yaml"
+  local DWCO_SERVICE="deploy/dwco/devworkspace-che-controller-manager-metrics-service.Service.yaml"
+
+  pushd "${ROOT_PROJECT_DIR}" || true
+
+  changedFiles=($(git diff --name-only))
+  if [[ " ${changedFiles[*]} " =~ $DWCO_CRD ]] || [[ " ${changedFiles[*]} " =~ $CWCO_CONFIGMAP ]] || \
+     [[ " ${changedFiles[*]} " =~ $DWCO_SERVICE ]]; then
+    echo "[ERROR] DWCO resources are not up to date: ${BASH_REMATCH}"
+    echo "[ERROR] Run 'olm/update-resources.sh' to download them."
+    exit 1
+  else
+    echo "[INFO] DWCO resources are up to date."
+  fi
+}
+
 installOperatorSDK
 updateResources
 checkCRDs
 checkNightlyOlmBundle
 checkDockerfile
 checkOperatorYaml
+checkDWCO
 
 echo "[INFO] Done."

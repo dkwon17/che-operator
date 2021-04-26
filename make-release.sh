@@ -239,6 +239,8 @@ releaseOlmFiles() {
 
   test -f $kubernetes/org_v1_che_crd.yaml
   test -f $openshift/org_v1_che_crd.yaml
+  test -f $kubernetes/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml
+  test -f $openshift/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml
 
   echo "[INFO] releaseOlmFiles :: Commit changes"
   if git status --porcelain; then

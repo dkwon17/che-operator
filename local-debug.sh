@@ -18,6 +18,7 @@ command -v operator-sdk >/dev/null 2>&1 || { echo "operator-sdk is not installed
 ECLIPSE_CHE_NAMESPACE="eclipse-che"
 ECLIPSE_CHE_CR="./deploy/crds/org_v1_che_cr.yaml"
 ECLIPSE_CHE_CRD="./deploy/crds/org_v1_che_crd.yaml"
+ECLIPSE_CHE_DWCO_CRD="./deploy/dwco/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml"
 DEV_WORKSPACE_CONTROLLER_VERSION="main"
 DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
 
@@ -69,7 +70,7 @@ prepareTemplates() {
   # Copy Dev Workspace Che operator templates
   rm -rf /tmp/devworkspace-che-operator/
   mkdir -p /tmp/devworkspace-che-operator/templates
-  cp deploy/dev-workspace-che/* /tmp/devworkspace-che-operator/templates
+  cp deploy/dwco/* /tmp/devworkspace-che-operator/templates
 }
 
 createNamespace() {
@@ -80,6 +81,7 @@ createNamespace() {
 
 applyCRandCRD() {
   kubectl apply -f ${ECLIPSE_CHE_CRD}
+  kubectl apply -f ${ECLIPSE_CHE_DWCO_CRD}
   kubectl apply -f ${ECLIPSE_CHE_CR} -n $ECLIPSE_CHE_NAMESPACE
 }
 

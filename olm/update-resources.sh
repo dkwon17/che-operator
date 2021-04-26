@@ -10,10 +10,6 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-# Generated CRDs based on pkg/apis/org/v1/che_types.go:
-# - deploy/crds/org_v1_che_crd.yaml
-# - deploy/crds/org_v1_che_crd-v1beta1.yaml
-
 set -e
 
 unset UBI8_MINIMAL_IMAGE
@@ -240,6 +236,16 @@ updateNighltyBundle() {
   done
 }
 
+updateDWCO() {
+  echo "[INFO] Downloading DevWorkspace Che Operator resources"
+  curl -sL https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml \
+      -o ${ROOT_PROJECT_DIR}/deploy/dwco/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml
+  curl -sL https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-configmap.ConfigMap.yaml \
+      -o ${ROOT_PROJECT_DIR}/deploy/dwco/devworkspace-che-configmap.ConfigMap.yaml
+  curl -sL https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-controller-manager-metrics-service.Service.yaml \
+      -o ${ROOT_PROJECT_DIR}/deploy/dwco/devworkspace-che-controller-manager-metrics-service.Service.yaml
+}
+
 addLicenseHeader() {
 echo -e "#
 #  Copyright (c) 2019-2021 Red Hat, Inc.
@@ -261,3 +267,4 @@ generateCRD "v1beta1"
 updateOperatorYaml
 updateDockerfile
 updateNighltyBundle
+updateDWCO
