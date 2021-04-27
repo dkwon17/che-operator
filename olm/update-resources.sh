@@ -141,8 +141,8 @@ updateNighltyBundle() {
     # copy CR/CRD
     cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_cr.yaml" "${generateFolder}/crds"
     cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${generateFolder}/crds"
-    cp -f "${ROOT_PROJECT_DIR}/deploy/dev-workspace/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml" "${generateFolder}/crds"
-    cp -f "${ROOT_PROJECT_DIR}/deploy/dev-workspace/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml" "${generateFolder}/crds"
+    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml" "${generateFolder}/crds"
+    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml" "${generateFolder}/crds"
 
     # generate a new CSV
     "${OPERATOR_SDK_BINARY}" generate csv \
@@ -169,8 +169,8 @@ updateNighltyBundle() {
 
 
     cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests"
-    cp -f "${ROOT_PROJECT_DIR}/deploy/dev-workspace/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests"
-    cp -f "${ROOT_PROJECT_DIR}/deploy/dev-workspace/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests"
+    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests"
+    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests"
 
     CRD="${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
     if [[ $platform == "openshift" ]]; then
@@ -240,13 +240,9 @@ updateNighltyBundle() {
 updateDW() {
   echo "[INFO] Downloading DevWorkspace resources"
   curl -sL https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml \
-      -o ${ROOT_PROJECT_DIR}/deploy/dev-workspace/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml
-  curl -sL https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-configmap.ConfigMap.yaml \
-      -o ${ROOT_PROJECT_DIR}/deploy/dev-workspace/devworkspace-che-configmap.ConfigMap.yaml
-  curl -sL https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-controller-manager-metrics-service.Service.yaml \
-      -o ${ROOT_PROJECT_DIR}/deploy/dev-workspace/devworkspace-che-controller-manager-metrics-service.Service.yaml
+      -o ${ROOT_PROJECT_DIR}/deploy/crds/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml
   curl -sL https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml \
-      -o ${ROOT_PROJECT_DIR}/deploy/dev-workspace/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml
+      -o ${ROOT_PROJECT_DIR}/deploy/crds/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml
 }
 
 addLicenseHeader() {

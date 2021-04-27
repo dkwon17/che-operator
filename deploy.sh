@@ -21,16 +21,12 @@ while [[ "$#" -gt 0 ]]; do
   case $1 in
     '--namespace'|'-n') NAMESPACE=$2; shift 1;;
     '--che-operator-image') CHE_OPERATOR_IMAGE=$2; shift 1;;
-    '--logs') LOGS=true;
+    '--logs') LOGS=true;;
     esac
     shift 1
 done
 
-echo "[INFO] Deploying Eclipse Che in namespace: "$NAMESPACE
-set +e; oc create namespace $ECLIPSE_CHE_NAMESPACE; set -e
-
-echo "[INFO] Creating SA roles and clusterroles"
-
+set +e; oc create namespace $NAMESPACE; set -e
 oc apply -f ${BASE_DIR}/deploy/service_account.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/role.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/role_binding.yaml -n $NAMESPACE
@@ -38,26 +34,18 @@ oc apply -f ${BASE_DIR}/deploy/cluster_role.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/cluster_role_binding.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/proxy_cluster_role.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/proxy_cluster_role_binding.yaml -n $NAMESPACE
-
-echo "[INFO] Creating Custom Resource Difinition"
-
 oc apply -f ${BASE_DIR}/deploy/crds/org_v1_che_crd.yaml -n $NAMESPACE
-oc apply -f ${BASE_DIR}/deploy/dev-workspace/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml -n $NAMESPACE
-oc apply -f ${BASE_DIR}/deploy/dev-workspace/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml -n $NAMESPACE
+oc apply -f ${BASE_DIR}/deploy/crds/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml -n $NAMESPACE
+oc apply -f ${BASE_DIR}/deploy/crds/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml -n $NAMESPACE
 sleep 5
-
-echo "[INFO] Creating operator deployment, image: "$CHE_OPERATOR_IMAGE
 
 cp -f ${BASE_DIR}/deploy/operator.yaml /tmp/operator.yaml
 yq -riyY "( .spec.template.spec.containers[] | select(.name == \"che-operator\") | .image ) = \"${CHE_OPERATOR_IMAGE}\"" /tmp/operator.yaml
-
 oc apply -f /tmp/operator.yaml -n $NAMESPACE
-
-echo "[INFO] Creating Custom Resource"
-
 oc apply -f ${BASE_DIR}/deploy/crds/org_v1_che_cr.yaml -n $NAMESPACE
 
 if [[ $LOGS == true ]]; then
-  echo "[INFO] Start printing logs"
-  oc logs $(oc get pods -o json -n $NAMESPACE | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name') -n $NAMESPACE --all-containers
+  echo "[INFO] Start printing logs..."
+  oc wait --for=condition=ready pod -l app.kubernetes.io/component=che-operator -n $NAMESPACE --timeout=60s
+  oc logs $(oc get pods -o json -n $NAMESPACE | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name') -n $NAMESPACE --all-containers -f
 fi

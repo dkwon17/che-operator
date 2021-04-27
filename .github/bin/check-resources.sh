@@ -117,14 +117,11 @@ checkOperatorYaml() {
 
 checkDW() {
   # files to check
-  local CHEMANAGER_CRD="deploy/dev-workspace/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml"
-  local DWROUTINGS_CRD="deploy/dev-workspace/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
-  local CWCO_CONFIGMAP="deploy/dev-workspace/devworkspace-che-configmap.ConfigMap.yaml"
-  local DWCO_SERVICE="deploy/dev-workspace/devworkspace-che-controller-manager-metrics-service.Service.yaml"
+  local CHEMANAGER_CRD="deploy/crds/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml"
+  local DWROUTINGS_CRD="deploy/crds/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
 
   changedFiles=($(git diff --name-only))
-  if [[ " ${changedFiles[*]} " =~ $CHEMANAGER_CRD ]] || [[ " ${changedFiles[*]} " =~ $CWCO_CONFIGMAP ]] || \
-     [[ " ${changedFiles[*]} " =~ $DWCO_SERVICE ]] || [[ " ${changedFiles[*]} " =~ $DWROUTINGS_CRD ]]; then
+  if [[ " ${changedFiles[*]} " =~ $CHEMANAGER_CRD ]] || [[ " ${changedFiles[*]} " =~ $DWROUTINGS_CRD ]]; then
     echo "[ERROR] DWCO resources are not up to date: ${BASH_REMATCH}"
     echo "[ERROR] Run 'olm/update-resources.sh' to download them."
     exit 1

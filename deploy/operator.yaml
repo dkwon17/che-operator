@@ -30,7 +30,6 @@ spec:
         app.kubernetes.io/name: che
         app.kubernetes.io/instance: che
         app.kubernetes.io/component: che-operator
-        control-plane: controller-manager
     spec:
       containers:
         - name: che-operator

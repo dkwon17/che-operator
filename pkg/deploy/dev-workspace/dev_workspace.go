@@ -66,9 +66,6 @@ var (
 	DevWorkspaceConfigMapFile                 = DevWorkspaceTemplates + "/devworkspace-controller-configmap.ConfigMap.yaml"
 	DevWorkspaceDeploymentFile                = DevWorkspaceTemplates + "/devworkspace-controller-manager.Deployment.yaml"
 
-	DevWorkspaceCheConfigMapFile      = DevWorkspaceCheTemplates + "/devworkspace-che-configmap.ConfigMap.yaml"
-	DevWorkspaceCheMetricsServiceFile = DevWorkspaceCheTemplates + "/devworkspace-che-controller-manager-metrics-service.Service.yaml"
-
 	WebTerminalOperatorSubscriptionName = "web-terminal"
 	WebTerminalOperatorNamespace        = "openshift-operators"
 )
@@ -101,7 +98,6 @@ var (
 
 	syncDwCheItems = []func(*deploy.DeployContext) (bool, error){
 		synDwCheCR,
-		syncDwCheConfigMap,
 		syncDwCheMetricsService,
 	}
 )
@@ -301,6 +297,14 @@ func synDwCheCR(deployContext *deploy.DeployContext) (bool, error) {
 
 	if obj == nil {
 		obj := &unstructured.Unstructured{}
+		if !util.IsOpenShift {
+			obj.SetUnstructuredContent(map[string]interface{}{
+				"spec": map[string]interface{}{
+					"gatewayHost": deployContext.CheCluster.Spec.K8s.IngressDomain,
+					"k8s":         map[string]interface{}{},
+				},
+			})
+		}
 		obj.SetGroupVersionKind(schema.GroupVersionKind{
 			Group:   "che.eclipse.org",
 			Version: "v1alpha1",
