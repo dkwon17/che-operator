@@ -11,20 +11,25 @@
 #   Red Hat, Inc. - initial API and implementation
 
 set -e
-set -x
 
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)
-
 NAMESPACE="eclipse-che"
 CHE_OPERATOR_IMAGE="quay.io/eclipse/che-operator:nightly"
+LOGS=false
 
 while [[ "$#" -gt 0 ]]; do
   case $1 in
     '--namespace'|'-n') NAMESPACE=$2; shift 1;;
     '--che-operator-image') CHE_OPERATOR_IMAGE=$2; shift 1;;
+    '--logs') LOGS=true;
     esac
     shift 1
 done
+
+echo "[INFO] Deploying Eclipse Che in namespace: "$NAMESPACE
+set +e; oc create namespace $ECLIPSE_CHE_NAMESPACE; set -e
+
+echo "[INFO] Creating SA roles and clusterroles"
 
 oc apply -f ${BASE_DIR}/deploy/service_account.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/role.yaml -n $NAMESPACE
@@ -34,17 +39,25 @@ oc apply -f ${BASE_DIR}/deploy/cluster_role_binding.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/proxy_cluster_role.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/proxy_cluster_role_binding.yaml -n $NAMESPACE
 
-oc apply -f ${BASE_DIR}/deploy/crds/org_v1_che_crd.yaml -n $NAMESPACE
-oc apply -f ${BASE_DIR}/deploy/dwco/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml -n $NAMESPACE
-oc apply -f ${BASE_DIR}/deploy/dwco/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml -n $NAMESPACE
+echo "[INFO] Creating Custom Resource Difinition"
 
-# sometimes the operator cannot get CRD right away
+oc apply -f ${BASE_DIR}/deploy/crds/org_v1_che_crd.yaml -n $NAMESPACE
+oc apply -f ${BASE_DIR}/deploy/dev-workspace/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml -n $NAMESPACE
+oc apply -f ${BASE_DIR}/deploy/dev-workspace/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml -n $NAMESPACE
 sleep 5
 
-# patch and apply operator.yaml
-cp ${BASE_DIR}/deploy/operator.yaml /tmp/operator.yaml
+echo "[INFO] Creating operator deployment, image: "$CHE_OPERATOR_IMAGE
+
+cp -f ${BASE_DIR}/deploy/operator.yaml /tmp/operator.yaml
 yq -riyY "( .spec.template.spec.containers[] | select(.name == \"che-operator\") | .image ) = \"${CHE_OPERATOR_IMAGE}\"" /tmp/operator.yaml
+
 oc apply -f /tmp/operator.yaml -n $NAMESPACE
 
-# create CR
+echo "[INFO] Creating Custom Resource"
+
 oc apply -f ${BASE_DIR}/deploy/crds/org_v1_che_cr.yaml -n $NAMESPACE
+
+if [[ $LOGS == true ]]; then
+  echo "[INFO] Start printing logs"
+  oc logs $(oc get pods -o json -n $NAMESPACE | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name') -n $NAMESPACE --all-containers
+fi

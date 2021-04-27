@@ -66,7 +66,6 @@ var (
 	DevWorkspaceConfigMapFile                 = DevWorkspaceTemplates + "/devworkspace-controller-configmap.ConfigMap.yaml"
 	DevWorkspaceDeploymentFile                = DevWorkspaceTemplates + "/devworkspace-controller-manager.Deployment.yaml"
 
-	DevWorkspaceCheManagersCRDFile    = DevWorkspaceCheTemplates + "/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml"
 	DevWorkspaceCheConfigMapFile      = DevWorkspaceCheTemplates + "/devworkspace-che-configmap.ConfigMap.yaml"
 	DevWorkspaceCheMetricsServiceFile = DevWorkspaceCheTemplates + "/devworkspace-che-controller-manager-metrics-service.Service.yaml"
 

@@ -123,9 +123,11 @@ do
   echo
   echo "   - Update the CRD files"
   cp "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/org_v1_che_crd.yaml" \
-  "${folderToUpdate}/${lastPackagePreReleaseVersion}/checlusters.org.eclipse.che.crd.yaml"
+  "${folderToUpdate}/${lastPackagePreReleaseVersion}/checlusters.org.eclipse.che.CustomResourceDefinition.yaml"
   cp "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml" \
   "${folderToUpdate}/${lastPackagePreReleaseVersion}/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml"
+  cp "${packageBaseFolderPath}/${lastPackagePreReleaseVersion}/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml" \
+  "${folderToUpdate}/${lastPackagePreReleaseVersion}/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
   echo
   echo "   - Update 'stable' channel with new release in the package descriptor: ${destinationPackageFilePath}"
   sed -e "s/${lastPublishedPackageVersion}/${lastPackagePreReleaseVersion}/" "${destinationPackageFilePath}" > "${destinationPackageFilePath}.new"

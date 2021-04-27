@@ -239,9 +239,12 @@ releaseOlmFiles() {
   grep -q "version: "$RELEASE $kubernetes/che-operator.clusterserviceversion.yaml
 
   test -f $kubernetes/org_v1_che_crd.yaml
-  test -f $openshift/org_v1_che_crd.yaml
   test -f $kubernetes/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml
+  test -f $kubernetes/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml
+
+  test -f $openshift/org_v1_che_crd.yaml
   test -f $openshift/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml
+  test -f $openshift/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml
 
   echo "[INFO] releaseOlmFiles :: Commit changes"
   if git status --porcelain; then

@@ -41,10 +41,8 @@ checkOperatorSDKVersion() {
 
 generateCRD() {
   version=$1
-  pushd "${ROOT_PROJECT_DIR}" || true
   "${OPERATOR_SDK_BINARY}" generate k8s
   "${OPERATOR_SDK_BINARY}" generate crds --crd-version $version
-  popd
 
   addLicenseHeader ${ROOT_PROJECT_DIR}/deploy/crds/org.eclipse.che_checlusters_crd.yaml
 
@@ -124,29 +122,29 @@ updateNighltyBundle() {
 
     echo "[INFO] Updating OperatorHub bundle for platform '${platform}'"
 
-    pushd "${ROOT_PROJECT_DIR}" || true
-
     NIGHTLY_BUNDLE_PATH=$(getBundlePath "${platform}" "nightly")
-    bundleCSVName="che-operator.clusterserviceversion.yaml"
-    NEW_CSV=${NIGHTLY_BUNDLE_PATH}/manifests/${bundleCSVName}
+    NEW_CSV=${NIGHTLY_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml
     newNightlyBundleVersion=$(yq -r ".spec.version" "${NEW_CSV}")
     echo "[INFO] Creation new nightly bundle version: ${newNightlyBundleVersion}"
 
-    csv_config=${NIGHTLY_BUNDLE_PATH}/csv-config.yaml
     generateFolder=${NIGHTLY_BUNDLE_PATH}/generated
     rm -rf "${generateFolder}"
-    mkdir -p "${generateFolder}"
+    mkdir -p "${generateFolder}/crds"
 
+    # copy roles
     "${NIGHTLY_BUNDLE_PATH}/build-roles.sh"
 
-    operatorYaml=$(yq -r ".\"operator-path\"" "${csv_config}")
-    cp -rf "${operatorYaml}" "${generateFolder}/"
+    # copy operator.yaml
+    operatorYaml=$(yq -r ".\"operator-path\"" "${NIGHTLY_BUNDLE_PATH}/csv-config.yaml")
+    cp -rf "${operatorYaml}" "${generateFolder}"
 
-    crdsDir=${ROOT_PROJECT_DIR}/deploy/crds
-    mkdir -p ${generateFolder}/crds
-    cp -f "${crdsDir}/org_v1_che_cr.yaml" "${generateFolder}/crds"
-    cp -f "${crdsDir}/org_v1_che_crd.yaml" "${generateFolder}/crds"
+    # copy CR/CRD
+    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_cr.yaml" "${generateFolder}/crds"
+    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${generateFolder}/crds"
+    cp -f "${ROOT_PROJECT_DIR}/deploy/dev-workspace/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml" "${generateFolder}/crds"
+    cp -f "${ROOT_PROJECT_DIR}/deploy/dev-workspace/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml" "${generateFolder}/crds"
 
+    # generate a new CSV
     "${OPERATOR_SDK_BINARY}" generate csv \
     --csv-version "${newNightlyBundleVersion}" \
     --deploy-dir "${generateFolder}" \
@@ -169,13 +167,15 @@ updateNighltyBundle() {
       incrementNightlyVersion "${platform}"
     fi
 
-    templateCRD="${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml"
-    platformCRD="${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
 
-    cp -rf $templateCRD $platformCRD
+    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests"
+    cp -f "${ROOT_PROJECT_DIR}/deploy/dev-workspace/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests"
+    cp -f "${ROOT_PROJECT_DIR}/deploy/dev-workspace/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests"
+
+    CRD="${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
     if [[ $platform == "openshift" ]]; then
-      yq -riSY  '.spec.preserveUnknownFields = false' $platformCRD
-      eval head -10 $templateCRD | cat - ${platformCRD} > tmp.crd && mv tmp.crd ${platformCRD}
+      yq -riSY  '.spec.preserveUnknownFields = false' $CRD
+      eval head -10 $CRD | cat - ${CRD} > tmp.crd && mv tmp.crd ${CRD}
     fi
 
     echo "Done for ${platform}"
@@ -197,6 +197,9 @@ updateNighltyBundle() {
         index=$((index+1))
       done
     fi
+
+    # Fix account name
+    sed -i 's|serviceAccountName: che-operator-proxy|serviceAccountName: default|g' $NEW_CSV
 
     # Fix sample
     if [ "${platform}" == "openshift" ]; then
@@ -231,21 +234,19 @@ updateNighltyBundle() {
     # Format code.
     yq -rY "." "${NEW_CSV}" > "${NEW_CSV}.old"
     mv "${NEW_CSV}.old" "${NEW_CSV}"
-
-    popd || true
   done
 }
 
-updateDWCO() {
-  echo "[INFO] Downloading DevWorkspace Che Operator resources"
+updateDW() {
+  echo "[INFO] Downloading DevWorkspace resources"
   curl -sL https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml \
-      -o ${ROOT_PROJECT_DIR}/deploy/dwco/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml
+      -o ${ROOT_PROJECT_DIR}/deploy/dev-workspace/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml
   curl -sL https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-configmap.ConfigMap.yaml \
-      -o ${ROOT_PROJECT_DIR}/deploy/dwco/devworkspace-che-configmap.ConfigMap.yaml
+      -o ${ROOT_PROJECT_DIR}/deploy/dev-workspace/devworkspace-che-configmap.ConfigMap.yaml
   curl -sL https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-controller-manager-metrics-service.Service.yaml \
-      -o ${ROOT_PROJECT_DIR}/deploy/dwco/devworkspace-che-controller-manager-metrics-service.Service.yaml
-  curl -sL https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml
-      -o ${ROOT_PROJECT_DIR}/deploy/dwco/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml
+      -o ${ROOT_PROJECT_DIR}/deploy/dev-workspace/devworkspace-che-controller-manager-metrics-service.Service.yaml
+  curl -sL https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml \
+      -o ${ROOT_PROJECT_DIR}/deploy/dev-workspace/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml
 }
 
 addLicenseHeader() {
@@ -264,9 +265,14 @@ $(cat $1)" > $1
 
 checkOperatorSDKVersion
 detectImages
+
+pushd "${ROOT_PROJECT_DIR}" || true
+
 generateCRD "v1"
 generateCRD "v1beta1"
 updateOperatorYaml
 updateDockerfile
 updateNighltyBundle
-updateDWCO
+updateDW
+
+popd || true
