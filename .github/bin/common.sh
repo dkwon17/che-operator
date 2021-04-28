@@ -54,6 +54,8 @@ curl -L https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV
   mv /tmp/devfile-devworkspace-operator-*/deploy ${TEMPLATES}/devworkspace
 
   cp -rf ${OPERATOR_REPO}/deploy/* "${TEMPLATES}/che-operator"
+
+  tree "${TEMPLATES}/che-operator"
 }
 
 getLatestsStableVersions() {

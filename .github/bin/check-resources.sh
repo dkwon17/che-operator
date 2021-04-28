@@ -15,6 +15,7 @@
 # - nightly olm bundle
 
 set -e
+set -x
 
 ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
 if [ -z "${ROOT_PROJECT_DIR}" ]; then
@@ -25,11 +26,11 @@ fi
 installOperatorSDK() {
   OPERATOR_SDK_BINARY=$(command -v operator-sdk) || true
   if [[ ! -x "${OPERATOR_SDK_BINARY}" ]]; then
+    OPERATOR_SDK_TEMP_DIR="$(mktemp -q -d -t "OPERATOR_SDK_XXXXXX" 2>/dev/null || mktemp -q -d)"
     pushd "${OPERATOR_SDK_TEMP_DIR}" || exit
 
     echo "[INFO] Downloading 'operator-sdk' cli tool..."
 
-    OPERATOR_SDK_TEMP_DIR="$(mktemp -q -d -t "OPERATOR_SDK_XXXXXX" 2>/dev/null || mktemp -q -d)"
     OPERATOR_SDK=$(yq -r ".\"operator-sdk\"" "${ROOT_PROJECT_DIR}/REQUIREMENTS")
     curl -sLo operator-sdk $(curl -sL https://api.github.com/repos/operator-framework/operator-sdk/releases/tags/${OPERATOR_SDK} | jq -r "[.assets[] | select(.name == \"operator-sdk-${OPERATOR_SDK}-x86_64-linux-gnu\")] | first | .browser_download_url")
     export OPERATOR_SDK_BINARY="${OPERATOR_SDK_TEMP_DIR}/operator-sdk"
