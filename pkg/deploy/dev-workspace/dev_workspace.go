@@ -21,6 +21,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+	"github.com/sirupsen/logrus"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -103,6 +104,12 @@ var (
 )
 
 func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
+	if !util.IsOpenShift && util.GetServerExposureStrategy(deployContext.CheCluster) == "single-host" {
+		logrus.Warn("DevWorkspace Che operator can't be enabled in 'single-host mode'. See https://github.com/eclipse/che/issues/19714 for more details.")
+		logrus.Warn("To enable DevWorkspace Che operator set 'spec.server.serverExposureStrategy' to 'multi-host'.")
+		return true, nil
+	}
+
 	for _, syncItem := range syncDwCheItems {
 		done, err := syncItem(deployContext)
 		if !util.IsTestMode() {
