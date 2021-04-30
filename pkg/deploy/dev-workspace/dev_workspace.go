@@ -104,7 +104,12 @@ var (
 )
 
 func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
-	if !util.IsOpenShift && util.GetServerExposureStrategy(deployContext.CheCluster) == "single-host" {
+	if util.IsOpenShift {
+		if !util.IsOpenShift4 {
+			// OpenShift 3.x is not supported
+			return true, nil
+		}
+	} else if util.GetServerExposureStrategy(deployContext.CheCluster) == "single-host" {
 		logrus.Warn(`DevWorkspace Che operator can't be enabled in 'single-host mode'.
 See https://github.com/eclipse/che/issues/19714 for more details.
 To enable DevWorkspace Che operator set 'spec.server.serverExposureStrategy' to 'multi-host'.`)
