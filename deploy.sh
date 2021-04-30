@@ -15,13 +15,11 @@ set -e
 BASE_DIR=$(cd "$(dirname "$0")"; pwd)
 NAMESPACE="eclipse-che"
 CHE_OPERATOR_IMAGE="quay.io/eclipse/che-operator:nightly"
-LOGS=false
 
 while [[ "$#" -gt 0 ]]; do
   case $1 in
     '--namespace'|'-n') NAMESPACE=$2; shift 1;;
     '--che-operator-image') CHE_OPERATOR_IMAGE=$2; shift 1;;
-    '--logs') LOGS=true;;
     esac
     shift 1
 done
@@ -44,8 +42,6 @@ yq -riyY "( .spec.template.spec.containers[] | select(.name == \"che-operator\")
 oc apply -f /tmp/operator.yaml -n $NAMESPACE
 oc apply -f ${BASE_DIR}/deploy/crds/org_v1_che_cr.yaml -n $NAMESPACE
 
-if [[ $LOGS == true ]]; then
-  echo "[INFO] Start printing logs..."
-  oc wait --for=condition=ready pod -l app.kubernetes.io/component=che-operator -n $NAMESPACE --timeout=60s
-  oc logs $(oc get pods -o json -n $NAMESPACE | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name') -n $NAMESPACE --all-containers -f
-fi
+echo "[INFO] Start printing logs..."
+oc wait --for=condition=ready pod -l app.kubernetes.io/component=che-operator -n $NAMESPACE --timeout=60s
+oc logs $(oc get pods -o json -n $NAMESPACE | jq -r '.items[] | select(.metadata.name | test("che-operator-")).metadata.name') -n $NAMESPACE --all-containers -f

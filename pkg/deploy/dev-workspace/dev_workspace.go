@@ -105,8 +105,9 @@ var (
 
 func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 	if !util.IsOpenShift && util.GetServerExposureStrategy(deployContext.CheCluster) == "single-host" {
-		logrus.Warn("DevWorkspace Che operator can't be enabled in 'single-host mode'. See https://github.com/eclipse/che/issues/19714 for more details.")
-		logrus.Warn("To enable DevWorkspace Che operator set 'spec.server.serverExposureStrategy' to 'multi-host'.")
+		logrus.Warn(`DevWorkspace Che operator can't be enabled in 'single-host mode'.
+See https://github.com/eclipse/che/issues/19714 for more details.
+To enable DevWorkspace Che operator set 'spec.server.serverExposureStrategy' to 'multi-host'.`)
 		return true, nil
 	}
 
@@ -308,7 +309,6 @@ func synDwCheCR(deployContext *deploy.DeployContext) (bool, error) {
 			obj.SetUnstructuredContent(map[string]interface{}{
 				"spec": map[string]interface{}{
 					"gatewayHost": deployContext.CheCluster.Spec.K8s.IngressDomain,
-					"k8s":         map[string]interface{}{},
 				},
 			})
 		}

@@ -45,6 +45,7 @@ func TestReconcileDevWorkspace(t *testing.T) {
 			Server: orgv1.CheClusterSpecServer{
 				ServerExposureStrategy: "single-host",
 			},
+			IsOpenShift: false,
 		},
 	}
 
@@ -58,29 +59,79 @@ func TestReconcileDevWorkspace(t *testing.T) {
 		},
 	}
 
-	util.IsOpenShift4 = true
-	done, err := ReconcileDevWorkspace(deployContext)
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			scheme := scheme.Scheme
+			orgv1.SchemeBuilder.AddToScheme(scheme)
+			scheme.AddKnownTypes(operatorsv1alpha1.SchemeGroupVersion, &operatorsv1alpha1.Subscription{})
 
-	if err != nil {
-		t.Fatalf("Error: %v", err)
+			cli := fake.NewFakeClientWithScheme(scheme)
+			clientSet := fakeclientset.NewSimpleClientset()
+			fakeDiscovery, _ := clientSet.Discovery().(*fakeDiscovery.FakeDiscovery)
+			fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{
+				{
+					APIResources: []metav1.APIResource{
+						{Name: CheManagerResourcename},
+					},
+				},
+			}
+
+			deployContext := &deploy.DeployContext{
+				CheCluster: testCase.cheCluster,
+				ClusterAPI: deploy.ClusterAPI{
+					Client:          cli,
+					NonCachedClient: cli,
+					Scheme:          scheme,
+					DiscoveryClient: fakeDiscovery,
+				},
+			}
+
+			util.IsOpenShift = testCase.IsOpenShift
+			done, err := ReconcileDevWorkspace(deployContext)
+			if err != nil {
+				t.Fatalf("Error: %v", err)
+			}
+			if !done {
+				t.Fatalf("Dev Workspace operator has not been provisioned")
+			}
+
+			t.Run("defaultCheManagerDeployed", func(t *testing.T) {
+				obj := &unstructured.Unstructured{}
+				obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "che.eclipse.org", Version: "v1alpha1", Kind: "CheManager"})
+				err := cli.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-che", Namespace: deployContext.CheCluster.Namespace}, obj)
+
+				if testCase.IsOpenShift {
+					if err != nil {
+						t.Fatalf("Should have found a CheManager with default config but got an error: %s", err)
+					}
+
+					if obj.GetName() != "devworkspace-che" {
+						t.Fatalf("Should have found a CheManager with default config but found: %s", obj.GetName())
+					}
+				} else {
+					if testCase.cheCluster.Spec.Server.ServerExposureStrategy == "single-host" {
+						if err == nil {
+							t.Fatalf("Should not have found a CheManager")
+						}
+					} else {
+						if err != nil {
+							t.Fatalf("Should have found a CheManager with default config but got an error: %s", err)
+						}
+
+						if obj.GetName() != "devworkspace-che" {
+							t.Fatalf("Should have found a CheManager with default config but found: %s", obj.GetName())
+						}
+
+						spec := obj.Object["spec"].(map[string]interface{})
+						gatewayHost := spec["gatewayHost"].(string)
+						if gatewayHost != deployContext.CheCluster.Spec.K8s.IngressDomain {
+							t.Fatalf("gatewayHost wasn't set correctly, expected: %s, actual: %s", deployContext.CheCluster.Spec.K8s.IngressDomain, gatewayHost)
+						}
+					}
+				}
+			})
+		})
 	}
-
-	if !done {
-		t.Fatalf("Dev Workspace operator has not been provisioned")
-	}
-
-	t.Run("defaultCheManagerDeployed", func(t *testing.T) {
-		obj := &unstructured.Unstructured{}
-		obj.SetGroupVersionKind(schema.GroupVersionKind{Group: "che.eclipse.org", Version: "v1alpha1", Kind: "CheManager"})
-		err := cli.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-che", Namespace: deployContext.CheCluster.Namespace}, obj)
-		if err != nil {
-			t.Fatalf("Should have found a CheManager with default config but got an error: %s", err)
-		}
-
-		if obj.GetName() != "devworkspace-che" {
-			t.Fatalf("Should have found a CheManager with default config but found: %s", obj.GetName())
-		}
-	})
 }
 
 func TestReconcileDevWorkspaceShouldThrowErrorIfWebTerminalSubscriptionExists(t *testing.T) {

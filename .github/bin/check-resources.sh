@@ -13,9 +13,10 @@
 # Checks if repository resources are up to date:
 # - CRDs
 # - nightly olm bundle
+# - Dockerfile & operator.yaml
+# - DW resources
 
 set -e
-set -x
 
 ROOT_PROJECT_DIR="${GITHUB_WORKSPACE}"
 if [ -z "${ROOT_PROJECT_DIR}" ]; then
@@ -58,7 +59,9 @@ checkCRDs() {
     local CRD_V1="deploy/crds/org_v1_che_crd.yaml"
     local CRD_V1BETA1="deploy/crds/org_v1_che_crd-v1beta1.yaml"
 
-    changedFiles=($(git diff --name-only))
+    changedFiles=(
+      $(git diff --name-only)
+    )
 
     # Check if there are any difference in the crds. If yes, then fail check.
     if [[ " ${changedFiles[*]} " =~ $CRD_V1 ]] || [[ " ${changedFiles[*]} " =~ $CRD_V1BETA1 ]]; then
@@ -77,7 +80,9 @@ checkNightlyOlmBundle() {
   local CRD_FILE_KUBERNETES="deploy/olm-catalog/nightly/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml"
   local CRD_FILE_OPENSHIFT="deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml"
 
-  changedFiles=($(git diff --name-only))
+  changedFiles=(
+    $(git diff --name-only)
+  )
   if [[ " ${changedFiles[*]} " =~ $CSV_FILE_OPENSHIFT ]] || [[ " ${changedFiles[*]} " =~ $CSV_FILE_OPENSHIFT ]] || \
      [[ " ${changedFiles[*]} " =~ $CRD_FILE_KUBERNETES ]] || [[ " ${changedFiles[*]} " =~ $CRD_FILE_OPENSHIFT ]]; then
     echo "[ERROR] Nighlty bundle is not up to date: ${BASH_REMATCH}"
@@ -92,7 +97,9 @@ checkDockerfile() {
   # files to check
   local Dockerfile="Dockerfile"
 
-  changedFiles=($(git diff --name-only))
+  changedFiles=(
+    $(git diff --name-only)
+  )
   if [[ " ${changedFiles[*]} " =~ $Dockerfile ]]; then
     echo "[ERROR] Dockerfile is not up to date"
     echo "[ERROR] Run 'olm/update-resources.sh' to update Dockerfile"
@@ -106,7 +113,9 @@ checkOperatorYaml() {
   # files to check
   local OperatorYaml="deploy/operator.yaml"
 
-  changedFiles=($(git diff --name-only))
+  changedFiles=(
+    $(git diff --name-only)
+  )
   if [[ " ${changedFiles[*]} " =~ $OperatorYaml ]]; then
     echo "[ERROR] $OperatorYaml is not up to date"
     echo "[ERROR] Run 'olm/update-resources.sh' to update $OperatorYaml"
@@ -121,7 +130,9 @@ checkDW() {
   local CHEMANAGER_CRD="deploy/crds/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml"
   local DWROUTINGS_CRD="deploy/crds/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
 
-  changedFiles=($(git diff --name-only))
+  changedFiles=(
+    $(git diff --name-only)
+  )
   if [[ " ${changedFiles[*]} " =~ $CHEMANAGER_CRD ]] || [[ " ${changedFiles[*]} " =~ $DWROUTINGS_CRD ]]; then
     echo "[ERROR] DWCO resources are not up to date: ${BASH_REMATCH}"
     echo "[ERROR] Run 'olm/update-resources.sh' to download them."

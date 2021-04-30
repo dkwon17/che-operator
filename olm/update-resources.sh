@@ -141,8 +141,6 @@ updateNighltyBundle() {
     # copy CR/CRD
     cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_cr.yaml" "${generateFolder}/crds"
     cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${generateFolder}/crds"
-    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml" "${generateFolder}/crds"
-    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml" "${generateFolder}/crds"
 
     # generate a new CSV
     "${OPERATOR_SDK_BINARY}" generate csv \

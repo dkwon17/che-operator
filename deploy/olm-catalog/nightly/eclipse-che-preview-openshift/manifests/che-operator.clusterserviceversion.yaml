@@ -976,7 +976,6 @@ spec:
                   app.kubernetes.io/instance: che
                   app.kubernetes.io/managed-by: olm
                   app.kubernetes.io/name: che
-                  control-plane: controller-manager
               spec:
                 containers:
                   - command:
