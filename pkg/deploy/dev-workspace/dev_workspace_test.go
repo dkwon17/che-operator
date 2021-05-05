@@ -45,7 +45,8 @@ func TestReconcileDevWorkspace(t *testing.T) {
 			Server: orgv1.CheClusterSpecServer{
 				ServerExposureStrategy: "single-host",
 			},
-			IsOpenShift: false,
+			IsOpenShift:  false,
+			IsOpenShift4: false,
 		},
 	}
 
@@ -87,6 +88,7 @@ func TestReconcileDevWorkspace(t *testing.T) {
 			}
 
 			util.IsOpenShift = testCase.IsOpenShift
+			util.IsOpenShift4 = testCase.IsOpenShift4
 			done, err := ReconcileDevWorkspace(deployContext)
 			if err != nil {
 				t.Fatalf("Error: %v", err)
@@ -110,7 +112,7 @@ func TestReconcileDevWorkspace(t *testing.T) {
 					}
 				} else {
 					if testCase.cheCluster.Spec.Server.ServerExposureStrategy == "single-host" {
-						if err == nil {
+						if err == nil || !apierrors.IsNotFound(err) {
 							t.Fatalf("Should not have found a CheManager")
 						}
 					} else {
