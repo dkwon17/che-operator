@@ -40,7 +40,7 @@ function getBundlePath() {
     exit 1
   fi
 
-  echo "${ROOT_DIR}/deploy/olm-catalog/${channel}/$(getPackageName "${platform}")"
+  echo "${ROOT_DIR}/bundle/${channel}/$(getPackageName "${platform}")"
 }
 
 getCurrentStableVersion() {
@@ -51,7 +51,8 @@ getCurrentStableVersion() {
   fi
 
   STABLE_BUNDLE_PATH=$(getBundlePath "${platform}" "stable")
-  LAST_STABLE_CSV="${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
+  packageName=$(getPackageName "${platform}")
+  LAST_STABLE_CSV="${STABLE_BUNDLE_PATH}/manifests/${packageName}.clusterserviceversion.yaml"
 
   lastStableVersion=$(yq -r ".spec.version" "${LAST_STABLE_CSV}")
   echo "${lastStableVersion}"
@@ -157,24 +158,29 @@ buildBundleImage() {
   pushd "${bundleDir}" || exit
   echo "[INFO] build bundle image for dir: ${bundleDir}"
 
-  ${OPM_BINARY} alpha bundle build \
-    -d "${OPM_BUNDLE_MANIFESTS_DIR}" \
-    --tag "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
-    --package "${packageName}" \
-    --channels "${channel}" \
-    --default "${channel}" \
-    --image-builder "${imageTool}"
+  # ${OPM_BINARY} alpha bundle build \
+  #   -d "${OPM_BUNDLE_MANIFESTS_DIR}" \
+  #   --tag "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
+  #   --package "${packageName}" \
+  #   --channels "${channel}" \
+  #   --default "${channel}" \
+  #   --image-builder "${imageTool}"
 
-  SKIP_TLS_VERIFY=""
-  if [ "${imageTool}" == "podman" ]; then
-    SKIP_TLS_VERIFY=" --tls-verify=false"
-  fi
+  pushd "${ROOT_DIR}" || true
+  make bundle
+  make bundle-build bundle-push BUNDLE_IMG=${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}
+  popd || true
 
-  eval "${imageTool}" push "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" "${SKIP_TLS_VERIFY}"
+  # SKIP_TLS_VERIFY=""
+  # if [ "${imageTool}" == "podman" ]; then
+  #   SKIP_TLS_VERIFY=" --tls-verify=false"
+  # fi
+
+  # eval "${imageTool}" push "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" "${SKIP_TLS_VERIFY}"
 
   # ${OPM_BINARY} alpha bundle validate -t "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" --image-builder "${imageTool}"
 
-  popd || exit
+  # popd || exit
 }
 
 # Build catalog source image with index based on bundle image.
@@ -191,60 +197,65 @@ buildCatalogImage() {
     exit 1
   fi
 
-  imageTool="${3}"
-  if [ -z "${imageTool}" ]; then
-    echo "[ERROR] Please specify third argument: 'image tool'"
-    exit 1
-  fi
+  # imageTool="${3}"
+  # if [ -z "${imageTool}" ]; then
+  #   echo "[ERROR] Please specify third argument: 'image tool'"
+  #   exit 1
+  # fi
 
-  forceBuildAndPush="${4}"
-  if [ -z "${forceBuildAndPush}" ]; then
-    echo "[ERROR] Please specify fourth argument: 'force build and push: true or false'"
-    exit 1
-  fi
+  # forceBuildAndPush="${4}"
+  # if [ -z "${forceBuildAndPush}" ]; then
+  #   echo "[ERROR] Please specify fourth argument: 'force build and push: true or false'"
+  #   exit 1
+  # fi
 
-  # optional argument
-  FROM_INDEX=${5:-""}
-  BUILD_INDEX_IMAGE_ARG=""
-  if [ ! "${FROM_INDEX}" == "" ]; then
-    BUILD_INDEX_IMAGE_ARG=" --from-index ${FROM_INDEX}"
-  fi
+  # # optional argument
+  # FROM_INDEX=${5:-""}
+  # BUILD_INDEX_IMAGE_ARG=""
+  # if [ ! "${FROM_INDEX}" == "" ]; then
+  #   BUILD_INDEX_IMAGE_ARG=" --from-index ${FROM_INDEX}"
+  # fi
 
-  SKIP_TLS_ARG=""
-  SKIP_TLS_VERIFY=""
-  if [ "${imageTool}" == "podman" ]; then
-    SKIP_TLS_ARG=" --skip-tls"
-    SKIP_TLS_VERIFY=" --tls-verify=false"
-  fi
+  # SKIP_TLS_ARG=""
+  # SKIP_TLS_VERIFY=""
+  # if [ "${imageTool}" == "podman" ]; then
+  #   SKIP_TLS_ARG=" --skip-tls"
+  #   SKIP_TLS_VERIFY=" --tls-verify=false"
+  # fi
 
-  INDEX_ADD_CMD="${OPM_BINARY} index add \
-       --bundles ${CATALOG_BUNDLE_IMAGE_NAME_LOCAL} \
-       --tag ${CATALOG_IMAGENAME} \
-       --pull-tool ${imageTool} \
-       --build-tool ${imageTool} \
-       --binary-image=quay.io/operator-framework/upstream-opm-builder:v1.15.1 \
-       --mode semver ${BUILD_INDEX_IMAGE_ARG} ${SKIP_TLS_ARG}"
+  # INDEX_ADD_CMD="${OPM_BINARY} index add \
+  #      --bundles ${CATALOG_BUNDLE_IMAGE_NAME_LOCAL} \
+  #      --tag ${CATALOG_IMAGENAME} \
+  #      --pull-tool ${imageTool} \
+  #      --build-tool ${imageTool} \
+  #      --binary-image=quay.io/operator-framework/upstream-opm-builder:v1.15.1 \
+  #      --mode semver ${BUILD_INDEX_IMAGE_ARG} ${SKIP_TLS_ARG}"
 
-  exitCode=0
+  pushd "${ROOT_DIR}" || true
+  make catalog-build CATALOG_IMG="${CATALOG_IMAGENAME}" BUNDLE_IMG="${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
+  make catalog-push CATALOG_IMG="${CATALOG_IMAGENAME}"
+  popd || true
+
+  # exitCode=0
   # Execute command and store an error output to the variable for following handling.
-  {
-    error=$(eval "${INDEX_ADD_CMD}" 2>&1 1>&$out) || \
-    {
-      exitCode="$?";
-      echo "[INFO] ${exitCode}";
-      true;
-    }
-  } {out}>&1
-  if [[ "${error}" == *"already exists, Bundle already added that provides package and csv"* ]] && [[ "${forceBuildAndPush}" == "true" ]]; then
-    echo "[INFO] Ignore error 'Bundle already added'"
+  # {
+  #   error=$(eval "${INDEX_ADD_CMD}" 2>&1 1>&$out) || \
+  #   {
+  #     exitCode="$?";
+  #     echo "[INFO] ${exitCode}";
+  #     true;
+  #   }
+  # } {out}>&1
+  # if [[ "${error}" == *"already exists, Bundle already added that provides package and csv"* ]] && [[ "${forceBuildAndPush}" == "true" ]]; then
+  #   echo "[INFO] Ignore error 'Bundle already added'"
     # Catalog bundle image contains bundle reference, continue without unnecessary push operation
-    return
-  else
-    echo "[INFO] ${exitCode}"
-    if [ "${exitCode}" != 0 ]; then
-      exit "${exitCode}"
-    fi
-  fi
+  #   return
+  # else
+  #   echo "[INFO] ${exitCode}"
+  #   if [ "${exitCode}" != 0 ]; then
+  #     exit "${exitCode}"
+  #   fi
+  # fi
 
   eval "${imageTool}" push "${CATALOG_IMAGENAME}" "${SKIP_TLS_VERIFY}"
 }
