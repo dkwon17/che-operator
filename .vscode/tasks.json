@@ -3,7 +3,6 @@
     "tasks": [
         {
             "label": "Compile che-operator code",
-            // "command": "GOOS=linux GOARCH=${ARCH} CGO_ENABLED=0 go build -mod=vendor -o /tmp/che-operator/che-operator cmd/manager/main.go",
             "command": "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o /tmp/che-operator/che-operator main.go",
             "options": {
                 "env": {

@@ -103,7 +103,8 @@ detectImages() {
 }
 
 updateOperatorYaml() {
-  OPERATOR_YAML="${ROOT_PROJECT_DIR}/deploy/operator.yaml"
+  # todo fight for old yaml name...
+  OPERATOR_YAML="${ROOT_PROJECT_DIR}/config/manager/manager.yaml"
   yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_pvc_jobs\") | .value ) = \"${UBI8_MINIMAL_IMAGE}\"" ${OPERATOR_YAML}
   yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_workspace_plugin_broker_metadata\") | .value ) = \"${PLUGIN_BROKER_METADATA_IMAGE}\"" ${OPERATOR_YAML}
   yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_workspace_plugin_broker_artifacts\") | .value ) = \"${PLUGIN_BROKER_ARTIFACTS_IMAGE}\"" ${OPERATOR_YAML}
@@ -136,25 +137,9 @@ updateNighltyBundle() {
     newNightlyBundleVersion=$(yq -r ".spec.version" "${NEW_CSV}")
     echo "[INFO] Creation new nightly bundle version: ${newNightlyBundleVersion}"
 
-    csv_config=${NIGHTLY_BUNDLE_PATH}/csv-config.yaml
-    generateFolder=${NIGHTLY_BUNDLE_PATH}/generated
-    rm -rf "${generateFolder}"
-    mkdir -p "${generateFolder}"
-
-    "${NIGHTLY_BUNDLE_PATH}/build-roles.sh"
-
-    operatorYaml=$(yq -r ".\"operator-path\"" "${csv_config}")
-    cp -rf "${operatorYaml}" "${generateFolder}/"
-
-    crdsDir=${ROOT_PROJECT_DIR}/deploy/crds
-    mkdir -p ${generateFolder}/crds
-    cp -f "${crdsDir}/org_v1_che_cr.yaml" "${generateFolder}/crds"
-    cp -f "${crdsDir}/org_v1_che_crd.yaml" "${generateFolder}/crds"
-
-    "${OPERATOR_SDK_BINARY}" generate csv \
-    --csv-version "${newNightlyBundleVersion}" \
-    --deploy-dir "${generateFolder}" \
-    --output-dir "${NIGHTLY_BUNDLE_PATH}" 2>&1 | sed -e 's/^/      /'
+    pushd "${ROOT_PROJECT_DIR}" || true
+    make bundle "platform=${platform}" "VERSION=${newNightlyBundleVersion}"
+    popd || true
 
     containerImage=$(sed -n 's|^ *image: *\([^ ]*/che-operator:[^ ]*\) *|\1|p' ${NEW_CSV})
     echo "[INFO] Updating new package version fields:"
@@ -173,8 +158,8 @@ updateNighltyBundle() {
       incrementNightlyVersion "${platform}"
     fi
 
-    templateCRD="${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml"
-    platformCRD="${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
+    templateCRD="${ROOT_PROJECT_DIR}/config/crd/bases/org.eclipse.che_checlusters.yaml"
+    platformCRD="${NIGHTLY_BUNDLE_PATH}/manifests/org.eclipse.che_checlusters.yaml"
 
     cp -rf $templateCRD $platformCRD
     if [[ $platform == "openshift" ]]; then
@@ -188,6 +173,40 @@ updateNighltyBundle() {
       echo "[INFO] Set tags in nightly OLM files"
       sed -ri "s/(.*:\s?)${RELEASE}([^-])?$/\1${TAG}\2/" "${NEW_CSV}"
     fi
+
+    YAML_CONTENT=$(cat "${NEW_CSV}")
+    if [[ $platform == "kubernetes" ]]; then
+      clusterPermLength=$(echo "${YAML_CONTENT}" | yq -r ".spec.install.spec.clusterPermissions[0].rules | length")
+      for (( i=0; i < ${clusterPermLength}; i++ )); do
+        apiGroupLength=$(echo "${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['${i}'].apiGroups | length')
+        if [ "${apiGroupLength}" -gt 0 ]; then
+          for (( j=0; j < ${apiGroupLength}; j++ )); do
+            if [[ $(echo "${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['${i}'].apiGroups['${j}']') =~ openshift.io$ ]]; then
+              YAML_CONTENT=$(echo "${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.clusterPermissions[0].rules['${i}'])' )
+              j=${j}-1
+              i=${i}-1
+              break
+            fi
+          done
+        fi
+      done
+    
+      clusterPermLength=$(echo "${YAML_CONTENT}" | yq -r ".spec.install.spec.permissions[0].rules | length")
+      for (( i=0; i < ${clusterPermLength}; i++ )); do
+        apiGroupLength=$(echo "${YAML_CONTENT}" | yq -r '.spec.install.spec.permissions[0].rules['${i}'].apiGroups | length')
+        if [ "${apiGroupLength}" -gt 0 ]; then
+          for (( j=0; j < ${apiGroupLength}; j++ )); do
+            if [[ $(echo "${YAML_CONTENT}" | yq -r '.spec.install.spec.permissions[0].rules['${i}'].apiGroups['${j}']') =~ openshift.io$ ]]; then
+              YAML_CONTENT=$(echo "${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.permissions[0].rules['${i}'])' )
+              j=${j}-1
+              i=${i}-1
+              break
+            fi
+          done
+        fi
+      done
+    fi
+    echo "${YAML_CONTENT}" > "${NEW_CSV}"
 
     if [[ $platform == "openshift" ]]; then
       # Removes che-tls-secret-creator
@@ -247,8 +266,9 @@ $(cat $1)" > $1
 
 checkOperatorSDKVersion
 detectImages
-generateCRD "v1"
-generateCRD "v1beta1"
+# update CR, CRDS...
+make generate; make manifests
+# Todo: generateCRD "v1beta1"
 updateOperatorYaml
 updateDockerfile
 updateNighltyBundle

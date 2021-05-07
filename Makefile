@@ -222,24 +222,36 @@ rm -rf $$TMP_DIR ;\
 }
 endef
 
-NIGHTLY_KUBERNETES_BUNDLE="bundle/nightly/eclipse-che-preview-kubernetes"
-NIGHTLY_OPENSHIFT_BUNDLE="bundle/nightly/eclipse-che-preview-openshift"
 NIGHTLY_CHANNEL="nightly"
-K8S_PACKAGE="eclipse-che-preview-kubernetes"
-OPENSHIFT_PACKAGE="eclipse-che-preview-openshift"
 
 .PHONY: bundle
 bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
+	if [ -z "$(platform)" ]; then
+		echo "[INFO] You must specify 'platform' macros. For example: `make bundle platform=kubernetes`"
+		exit 1
+	fi
+
+	BUNDLE_PACKAGE="eclipse-che-preview-$(platform)"
+	BUNDLE_DIR="bundle/nightly/$${BUNDLE_PACKAGE}"
+	GENERATED_CSV_NAME=$${BUNDLE_PACKAGE}.clusterserviceversion.yaml
+	DESIRED_CSV_NAME=che-operator.clusterserviceversion.yaml
+
 	operator-sdk generate kustomize manifests -q
 	pushd config/manager || true && $(KUSTOMIZE) edit set image controller=$(IMG) && popd || true
 	$(KUSTOMIZE) build config/manifests | \
 	operator-sdk generate bundle \
 	-q --overwrite --version $(VERSION) \
-	--package $(K8S_PACKAGE) \
-	--output-dir $(NIGHTLY_KUBERNETES_BUNDLE) \
+	--package $${BUNDLE_PACKAGE} \
+	--output-dir $${BUNDLE_DIR} \
 	$(BUNDLE_METADATA_OPTS)
 
-	operator-sdk bundle validate ./$(NIGHTLY_KUBERNETES_BUNDLE)
+	pushd $${BUNDLE_DIR}/manifests || true; 
+	mv $${GENERATED_CSV_NAME} $${DESIRED_CSV_NAME}
+	popd || true
+	operator-sdk bundle validate ./$${BUNDLE_DIR}
+
+bundles:
+	$(shell olm/update-resources.sh)
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.

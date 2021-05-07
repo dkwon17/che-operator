@@ -51,8 +51,7 @@ getCurrentStableVersion() {
   fi
 
   STABLE_BUNDLE_PATH=$(getBundlePath "${platform}" "stable")
-  packageName=$(getPackageName "${platform}")
-  LAST_STABLE_CSV="${STABLE_BUNDLE_PATH}/manifests/${packageName}.clusterserviceversion.yaml"
+  LAST_STABLE_CSV="${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
 
   lastStableVersion=$(yq -r ".spec.version" "${LAST_STABLE_CSV}")
   echo "${lastStableVersion}"
