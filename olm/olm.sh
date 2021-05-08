@@ -166,7 +166,7 @@ buildBundleImage() {
   #   --image-builder "${imageTool}"
 
   pushd "${ROOT_DIR}" || true
-  make bundle
+  make bundle platform="${platform}" DEFAULT_CHANNEL="${channel}" 
   make bundle-build bundle-push BUNDLE_IMG=${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}
   popd || true
 

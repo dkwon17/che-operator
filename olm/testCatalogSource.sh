@@ -79,8 +79,7 @@ init() {
   source "${OLM_DIR}/olm.sh"
   OPM_BUNDLE_DIR=$(getBundlePath "${PLATFORM}" "${CHANNEL}")
 
-  packageName=$(getPackageName "${PLATFORM}")
-  CSV_FILE="${OPM_BUNDLE_DIR}/manifests/${packageName}.clusterserviceversion.yaml"
+  CSV_FILE="${OPM_BUNDLE_DIR}/manifests/che-operator.clusterserviceversion.yaml"
   CSV_NAME=$(yq -r ".metadata.name" "${CSV_FILE}")
 
   installOPM

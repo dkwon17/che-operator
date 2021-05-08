@@ -41,19 +41,18 @@ init() {
   source "${OPERATOR_REPO}/olm/olm.sh"
 
   OPM_BUNDLE_DIR=$(getBundlePath "${platform}" "${channel}")
-  packageName=$(getPackageName "${platform}")
-  CSV_FILE_PATH="${OPM_BUNDLE_DIR}/manifests/${packageName}.clusterserviceversion.yaml"
+  CSV_FILE_PATH="${OPM_BUNDLE_DIR}/manifests/che-operator.clusterserviceversion.yaml"
 
-  # CATALOG_BUNDLE_IMAGE="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che_operator_bundle:0.0.1"
-  # CATALOG_IMAGENAME="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/testing_catalog:0.0.1"
+  CATALOG_BUNDLE_IMAGE="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che_operator_bundle:0.0.1"
+  CATALOG_IMAGENAME="${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/testing_catalog:0.0.1"
 
-  # echo "[INFO] Build bundle image... ${CATALOG_BUNDLE_IMAGE}"
-  # buildBundleImage "${platform}" "${CATALOG_BUNDLE_IMAGE}" "${channel}" "docker"
+  echo "[INFO] Build bundle image... ${CATALOG_BUNDLE_IMAGE}"
+  buildBundleImage "${platform}" "${CATALOG_BUNDLE_IMAGE}" "${channel}" "docker"
 
-  # echo "[INFO] Build catalog image... ${CATALOG_BUNDLE_IMAGE}"
-  # buildCatalogImage "${CATALOG_IMAGENAME}" "${CATALOG_BUNDLE_IMAGE}" "docker" "false"
+  echo "[INFO] Build catalog image... ${CATALOG_BUNDLE_IMAGE}"
+  buildCatalogImage "${CATALOG_IMAGENAME}" "${CATALOG_BUNDLE_IMAGE}" "docker" "false"
 
-  # echo "[INFO]: Successfully created catalog source container image and enabled minikube ingress."
+  echo "[INFO]: Successfully created catalog source container image and enabled minikube ingress."
 }
 
 run() {
