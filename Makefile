@@ -104,11 +104,13 @@ build: generate fmt vet ## Build manager binary.
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
+IMAGE_TOOL=docker
+
 docker-build: test ## Build docker image with the manager.
-	docker build -t ${IMG} .
+	${IMAGE_TOOL} build -t ${IMG} .
 
 docker-push: ## Push docker image with the manager.
-	docker push ${IMG}
+	${IMAGE_TOOL} push ${IMG}
 
 ##@ Deployment
 
@@ -232,7 +234,7 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 	fi
 
 	BUNDLE_PACKAGE="eclipse-che-preview-$(platform)"
-	BUNDLE_DIR="bundle/nightly/$${BUNDLE_PACKAGE}"
+	BUNDLE_DIR="bundle/$(DEFAULT_CHANNEL)/$${BUNDLE_PACKAGE}"
 	GENERATED_CSV_NAME=$${BUNDLE_PACKAGE}.clusterserviceversion.yaml
 	DESIRED_CSV_NAME=che-operator.clusterserviceversion.yaml
 
@@ -245,17 +247,25 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 	--output-dir $${BUNDLE_DIR} \
 	$(BUNDLE_METADATA_OPTS)
 
+	rm -rf bundle.Dockerfile
+
 	pushd $${BUNDLE_DIR}/manifests || true; 
 	mv $${GENERATED_CSV_NAME} $${DESIRED_CSV_NAME}
 	popd || true
 	operator-sdk bundle validate ./$${BUNDLE_DIR}
 
 bundles:
-	$(shell olm/update-resources.sh)
+	$(shell ./olm/update-resources.sh)
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
-	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+	if [ -z "$(platform)" ]; then
+		echo "[INFO] You must specify 'platform' macros. For example: `make bundle platform=kubernetes`"
+		exit 1
+	fi
+	BUNDLE_PACKAGE="eclipse-che-preview-$(platform)"
+	BUNDLE_DIR="bundle/$(DEFAULT_CHANNEL)/$${BUNDLE_PACKAGE}"
+	docker build -f $${BUNDLE_DIR}/bundle.Dockerfile -t $(BUNDLE_IMG) .
 
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.
@@ -295,7 +305,7 @@ endif
 # https://github.com/operator-framework/community-operators/blob/7f1438c/docs/packaging-operator.md#updating-your-existing-operator
 .PHONY: catalog-build
 catalog-build: opm ## Build a catalog image.
-	$(OPM) index add --container-tool docker --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
+	$(OPM) index add --container-tool $(IMAGE_TOOL) --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
 
 # Push the catalog image.
 .PHONY: catalog-push

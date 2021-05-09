@@ -145,41 +145,13 @@ buildBundleImage() {
     exit 1
   fi
 
-  packageName=$(getPackageName "${platform}")
-
-  if [ -z "${OPM_BUNDLE_DIR}" ]; then
-    bundleDir=$(getBundlePath "${platform}" "${channel}")
-  else
-    bundleDir="${OPM_BUNDLE_DIR}"
-  fi
-
-  OPM_BUNDLE_MANIFESTS_DIR="${bundleDir}/manifests"
-  pushd "${bundleDir}" || exit
-  echo "[INFO] build bundle image for dir: ${bundleDir}"
-
-  # ${OPM_BINARY} alpha bundle build \
-  #   -d "${OPM_BUNDLE_MANIFESTS_DIR}" \
-  #   --tag "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" \
-  #   --package "${packageName}" \
-  #   --channels "${channel}" \
-  #   --default "${channel}" \
-  #   --image-builder "${imageTool}"
+  echo "[INFO] build bundle image"
 
   pushd "${ROOT_DIR}" || true
-  make bundle platform="${platform}" DEFAULT_CHANNEL="${channel}" 
-  make bundle-build bundle-push BUNDLE_IMG=${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}
+
+  make bundles || true
+  make bundle-build bundle-push BUNDLE_IMG="${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" platform="${platform}" IMAGE_TOOL="${imageTool}"
   popd || true
-
-  # SKIP_TLS_VERIFY=""
-  # if [ "${imageTool}" == "podman" ]; then
-  #   SKIP_TLS_VERIFY=" --tls-verify=false"
-  # fi
-
-  # eval "${imageTool}" push "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" "${SKIP_TLS_VERIFY}"
-
-  # ${OPM_BINARY} alpha bundle validate -t "${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" --image-builder "${imageTool}"
-
-  # popd || exit
 }
 
 # Build catalog source image with index based on bundle image.
@@ -196,11 +168,11 @@ buildCatalogImage() {
     exit 1
   fi
 
-  # imageTool="${3}"
-  # if [ -z "${imageTool}" ]; then
-  #   echo "[ERROR] Please specify third argument: 'image tool'"
-  #   exit 1
-  # fi
+  imageTool="${3}"
+  if [ -z "${imageTool}" ]; then
+    echo "[ERROR] Please specify third argument: 'image tool'"
+    exit 1
+  fi
 
   # forceBuildAndPush="${4}"
   # if [ -z "${forceBuildAndPush}" ]; then
@@ -232,7 +204,7 @@ buildCatalogImage() {
 
   pushd "${ROOT_DIR}" || true
   make catalog-build CATALOG_IMG="${CATALOG_IMAGENAME}" BUNDLE_IMG="${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}"
-  make catalog-push CATALOG_IMG="${CATALOG_IMAGENAME}"
+  make catalog-push CATALOG_IMG="${CATALOG_IMAGENAME}" IMAGE_TOOL="${imageTool}"
   popd || true
 
   # exitCode=0
