@@ -48,7 +48,7 @@ initDefaults() {
 
 initOpenShiftDefaults() {
   export OAUTH="true"
-  export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
+  export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/config/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
 }
 
 initLatestTemplates() {
@@ -57,7 +57,7 @@ curl -L https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV
   mkdir -p /tmp/devworkspace-operator/templates/ && \
   mv /tmp/devfile-devworkspace-operator-*/deploy ${TEMPLATES}/devworkspace
 
-  cp -rf ${OPERATOR_REPO}/deploy/* "${TEMPLATES}/che-operator"
+  cp -rf ${OPERATOR_REPO}/config/* "${TEMPLATES}/che-operator"
 }
 
 initStableTemplates() {
@@ -89,8 +89,20 @@ initStableTemplates() {
   mkdir -p "${LAST_OPERATOR_TEMPLATE}/che-operator"
   mkdir -p "${PREVIOUS_OPERATOR_TEMPLATE}/che-operator"
 
-  cp -rf ${previousOperatorPath}/deploy/* "${PREVIOUS_OPERATOR_TEMPLATE}/che-operator"
-  cp -rf ${lastOperatorPath}/deploy/* "${LAST_OPERATOR_TEMPLATE}/che-operator"
+  compareResult=$(pysemver compare "${PREVIOUS_PACKAGE_VERSION}" "7.31.0")
+  if [ "${compareResult}" == "0" ]; then
+      cp -rf ${previousOperatorPath}/config/* "${PREVIOUS_OPERATOR_TEMPLATE}/che-operator"
+    else
+      cp -rf ${previousOperatorPath}/deploy/* "${PREVIOUS_OPERATOR_TEMPLATE}/che-operator"
+  fi
+
+  compareResult=$(pysemver compare "${LAST_PACKAGE_VERSION}" "7.31.0")
+  if [ "${compareResult}" == "0" ]; then
+      cp -rf ${lastOperatorPath}/config/* "${LAST_OPERATOR_TEMPLATE}/che-operator"
+    else
+      cp -rf ${lastOperatorPath}/deploy/* "${LAST_OPERATOR_TEMPLATE}/che-operator"
+  fi
+  
 }
 
 # Utility to wait for a workspace to be started after workspace:create.
@@ -236,33 +248,43 @@ disableOpenShiftOAuth() {
   yq -rSY '.spec.auth.openShiftoAuth = false' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
 
+getCRPath() {
+  compareResult=$(pysemver compare "${LAST_PACKAGE_VERSION}" "7.31.0")
+  if [ "${compareResult}" == "0" ]; then
+    local file="${1}/che-operator/samples/org.eclipse.che_v1_checluster.yaml"
+  else
+    local file="${1}/che-operator/crds/org_v1_che_cr.yaml"    
+  fi
+  echo "${file}"
+}
+
 disableUpdateAdminPassword() {
-  local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
+  file=$(getCRPath "${1}")
   yq -rSY '.spec.auth.updateAdminPassword = false' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
 
 setServerExposureStrategy() {
-  local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
+  file=$(getCRPath "${1}")
   yq -rSY '.spec.server.serverExposureStrategy = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
 
 enableDevWorkspace() {
-  local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
+  file=$(getCRPath "${1}")
   yq -rSY '.spec.devWorkspace.enable = '${2}'' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
 
 setSingleHostExposureType() {
-  local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
+  file=$(getCRPath "${1}")
   yq -rSY '.spec.k8s.singleHostExposureType = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
 
 setIngressDomain() {
-  local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
+  file=$(getCRPath "${1}")
   yq -rSY '.spec.k8s.ingressDomain = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
 
 setCustomOperatorImage() {
-  local file="${1}/che-operator/operator.yaml"
+  local file="${1}/che-operator/samples/org.eclipse.che_v1_checluster.yaml"
   yq -rSY '.spec.template.spec.containers[0].image = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
   yq -rSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
@@ -270,18 +292,6 @@ setCustomOperatorImage() {
 insecurePrivateDockerRegistry() {
   IMAGE_REGISTRY_HOST="127.0.0.1:5000"
   export IMAGE_REGISTRY_HOST
-
-  # local dockerDaemonConfig="/etc/docker/daemon.json"
-  # sudo mkdir -p "/etc/docker"
-  # sudo touch "${dockerDaemonConfig}"
-
-  # config="{\"insecure-registries\" : [\"${IMAGE_REGISTRY_HOST}\"]}"
-  # echo "${config}" | sudo tee "${dockerDaemonConfig}"
-
-  # if [ -x "$(command -v docker)" ]; then
-  #     echo "[INFO] Restart docker daemon to set up private registry info."
-  #     sudo service docker restart
-  # fi
 }
 
 # Utility to print objects created by Openshift CI automatically

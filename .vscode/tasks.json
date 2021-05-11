@@ -129,8 +129,21 @@
         },
 
         {
-            "label": "Build test bundle",
-            "command": "export BUNDLE_IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:v0.0.1\"; make bundle IMG=${BUNDLE_IMG}; make bundle-build bundle-push BUNDLE_IMG=${BUNDLE_IMG}",
+            "label": "Build test bundle Kubernetes platform",
+            "command": "export BUNDLE_IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:v0.0.1\"; make bundle IMG=${BUNDLE_IMG} platform=\"kubebernetes\"; make bundle-build bundle-push BUNDLE_IMG=${BUNDLE_IMG} platform=\"kubebernetes\" --namespace ${NAMESPACE}",
+            "type": "shell",
+            "args": [],
+            "problemMatcher": [
+                "$go"
+            ],
+            "presentation": {
+                "reveal": "always"
+            },
+            "group": "build"
+        },
+        {
+            "label": "Build test bundle Openshift platform",
+            "command": "export BUNDLE_IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator-bundle:v0.0.1\"; make bundle IMG=${BUNDLE_IMG} platform=\"openshift\"; make bundle-build bundle-push BUNDLE_IMG=${BUNDLE_IMG} platform=\"openshift\" --namespace ${NAMESPACE}",
             "type": "shell",
             "args": [],
             "problemMatcher": [
@@ -143,7 +156,25 @@
         },
         {
             "label": "Install che-operator via OLM",
-            "command": "operator-sdk run bundle ${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator-bundle:v0.0.1; kubectl apply -f config/samples/cache_v1_checluster.yaml -n eclipse-che",
+            "command": "operator-sdk run bundle ${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator-bundle:v0.0.1 --namespace ${NAMESPACE}; kubectl apply -f config/samples/cache_v1_checluster.yaml -n ${NAMESPACE}",
+            "type": "shell",
+            "args": [],
+            "problemMatcher": [
+                "$go"
+            ],
+            "presentation": {
+                "reveal": "always"
+            },
+            "group": "build",
+            "options": {
+                "env": {
+                    "NAMESPACE": "eclipse-che"
+                }
+            },
+        },
+        {
+            "label": "UnInstall che-operator via OLM Openshift",
+            "command": "operator-sdk cleanup eclipse-che-preview-openshift",
             "type": "shell",
             "args": [],
             "problemMatcher": [
@@ -155,8 +186,8 @@
             "group": "build"
         },
         {
-            "label": "UnInstall che-operator via OLM",
-            "command": "operator-sdk cleanup che-operator || operator-sdk cleanup che-operator",
+            "label": "UnInstall che-operator via OLM Kubernetes",
+            "command": "operator-sdk cleanup eclipse-che-preview-kubernetes",
             "type": "shell",
             "args": [],
             "problemMatcher": [

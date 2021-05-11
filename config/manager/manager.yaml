@@ -119,3 +119,4 @@ spec:
               memory: 20Mi
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 20
+      restartPolicy: Always

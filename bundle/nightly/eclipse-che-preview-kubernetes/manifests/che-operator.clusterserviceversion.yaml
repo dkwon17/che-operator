@@ -75,7 +75,7 @@ metadata:
     capabilities: Basic Install
     operators.operatorframework.io/builder: operator-sdk-v1.6.1+git
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
-  name: eclipse-che-preview-kubernetes.v7.31.0-178.nightly
+  name: eclipse-che-preview-kubernetes.v7.31.0-180.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -784,6 +784,7 @@ spec:
                         memory: 20Mi
                     securityContext:
                       allowPrivilegeEscalation: false
+                restartPolicy: Always
                 securityContext:
                   runAsNonRoot: true
                 serviceAccountName: che-operator-controller-manager
@@ -942,4 +943,4 @@ spec:
   provider:
     name: Provider Name
     url: https://your.domain
-  version: 7.31.0-178.nightly
+  version: 7.31.0-180.nightly

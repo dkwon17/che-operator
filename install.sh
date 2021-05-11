@@ -6,7 +6,7 @@ make docker-build docker-push IMG="quay.io/aandriienko/che-operator:nightly"
 # make bundle IMG="quay.io/aandriienko/che-operator-bundle:v1.0.2" platform="kubernetes"
 make bundles
 make bundle-build bundle-push platform="kubernetes"
-make catalog-build platform="kubernetes"
+# make catalog-build platform="kubernetes"
 operator-sdk run bundle quay.io/aandriienko/che-operator-bundle:v1.0.2
 
 # sleep 40
