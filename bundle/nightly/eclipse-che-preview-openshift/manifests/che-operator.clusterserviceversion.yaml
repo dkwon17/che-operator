@@ -66,7 +66,7 @@ metadata:
     capabilities: Basic Install
     operators.operatorframework.io/builder: operator-sdk-v1.6.1+git
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
-  name: eclipse-che-preview-openshift.v7.31.0-180.nightly
+  name: eclipse-che-preview-openshift.v7.31.0-252.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -807,11 +807,16 @@ spec:
             selector:
               matchLabels:
                 control-plane: controller-manager
-            strategy: {}
+            strategy:
+              type: RollingUpdate
             template:
               metadata:
                 labels:
+                  app: che-operator
+                  app.kubernetes.io/component: che-operator
+                  app.kubernetes.io/instance: che
                   app.kubernetes.io/managed-by: olm
+                  app.kubernetes.io/name: che
                   control-plane: controller-manager
               spec:
                 containers:
@@ -897,11 +902,14 @@ spec:
                     image: quay.io/aandriienko/che-operator:nightly
                     imagePullPolicy: Always
                     livenessProbe:
+                      failureThreshold: 10
                       httpGet:
                         path: /healthz
                         port: 8081
                       initialDelaySeconds: 15
-                      periodSeconds: 20
+                      periodSeconds: 10
+                      successThreshold: 1
+                      timeoutSeconds: 5
                     name: manager
                     readinessProbe:
                       httpGet:
@@ -909,6 +917,8 @@ spec:
                         port: 8081
                       initialDelaySeconds: 5
                       periodSeconds: 10
+                      successThreshold: 1
+                      timeoutSeconds: 5
                     resources:
                       limits:
                         cpu: 100m
@@ -1084,4 +1094,4 @@ spec:
   provider:
     name: Provider Name
     url: https://your.domain
-  version: 7.31.0-180.nightly
+  version: 7.31.0-252.nightly

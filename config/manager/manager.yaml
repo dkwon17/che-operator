@@ -19,11 +19,18 @@ spec:
   selector:
     matchLabels:
       control-plane: controller-manager
+  strategy:
+    type: RollingUpdate
   replicas: 1
   template:
     metadata:
       labels:
         control-plane: controller-manager
+        app: che-operator
+        app.kubernetes.io/component: che-operator
+        app.kubernetes.io/instance: che
+        app.kubernetes.io/managed-by: olm
+        app.kubernetes.io/name: che
     spec:
       securityContext:
         runAsNonRoot: true
@@ -99,17 +106,22 @@ spec:
           securityContext:
             allowPrivilegeEscalation: false
           livenessProbe:
+            failureThreshold: 10
             httpGet:
               path: /healthz
               port: 8081
             initialDelaySeconds: 15
-            periodSeconds: 20
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
           readinessProbe:
             httpGet:
               path: /readyz
               port: 8081
             initialDelaySeconds: 5
             periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
           resources:
             limits:
               cpu: 100m

@@ -43,6 +43,7 @@ BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:v$(VERSION)
 IMG ?= quay.io/aandriienko/che-operator:nightly
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
+CRD_BETA_OPTIONS ?= "$(CRD_OPTIONS),crdVersions=v1beta1"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -78,8 +79,44 @@ help: ## Display this help.
 
 ##@ Development
 
+removeRequiredAttribute:
+	REQUIRED=false
+
+	while IFS= read -r line;
+	do
+		if [[ $${REQUIRED} == true ]]; then
+			if [[ $${line} == *"- "* ]]; then
+				continue
+			else
+				REQUIRED=false
+			fi
+		fi
+
+		if [[ $${line} == *"required:"* ]]; then
+			REQUIRED=true
+			continue
+		fi
+
+		echo  "$${line}" >> $${filePath}.tmp
+	done < "$${filePath}"
+	mv $${filePath}.tmp $${filePath}
+
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+	# Generate CRDs v1 and v2
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) $(CRD_BETA_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:stdout > config/crd/bases/org_v1_che_crd-v1beta1.yaml
+
+	# Rename and patch CRDs
+	pushd config/crd/bases || true
+
+	mv org.eclipse.che_checlusters.yaml org_v1_che_crd.yaml
+	sed -i.bak '/---/d' org_v1_che_crd-v1beta1.yaml
+	sed -i.bak '/---/d' org_v1_che_crd.yaml
+	rm -rf org_v1_che_crd-v1beta1.yaml.bak org_v1_che_crd.yaml.bak
+
+	popd || true
+
+	$(MAKE) removeRequiredAttribute "filePath=config/crd/bases/org_v1_che_crd-v1beta1.yaml"
 
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
@@ -305,7 +342,7 @@ endif
 # https://github.com/operator-framework/community-operators/blob/7f1438c/docs/packaging-operator.md#updating-your-existing-operator
 .PHONY: catalog-build
 catalog-build: opm ## Build a catalog image.
-	$(OPM) index add --container-tool $(IMAGE_TOOL) --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
+	$(OPM) index add --binary-image=quay.io/operator-framework/upstream-opm-builder:v1.15.1 --container-tool $(IMAGE_TOOL) --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
 
 # Push the catalog image.
 .PHONY: catalog-push

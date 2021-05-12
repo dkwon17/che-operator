@@ -168,11 +168,21 @@ deployEclipseChe() {
   local image=$3
   local templates=$4
 
-  echo "[INFO] Eclipse Che custom resource"
-  cat ${templates}/che-operator/crds/org_v1_che_cr.yaml
+  if [ -z "${LAST_PACKAGE_VERSION:-}" ]; then
+    echo "[INFO] Eclipse Che custom resource"
+    local crSample=${templates}/che-operator/samples/org.eclipse.che_v1_checluster.yaml
+    cat ${crSample}
 
-  echo "[INFO] Eclipse Che operator deployment"
-  cat ${templates}/che-operator/operator.yaml
+    echo "[INFO] Eclipse Che operator deployment"
+    cat ${templates}/che-operator/manager/manager.yaml
+  else
+    echo "[INFO] Eclipse Che custom resource"
+    local crSample=${templates}/che-operator/crds/org_v1_che_cr.yaml
+    cat ${crSample}
+
+    echo "[INFO] Eclipse Che operator deployment"
+    cat ${templates}/che-operator/operator.yaml
+  fi
 
   chectl server:deploy \
     --platform=${platform} \
@@ -180,8 +190,8 @@ deployEclipseChe() {
     --chenamespace ${NAMESPACE} \
     --che-operator-image ${image} \
     --skip-kubernetes-health-check \
-    --che-operator-cr-yaml ${templates}/che-operator/crds/org_v1_che_cr.yaml \
-    --templates ${templates}
+    --che-operator-cr-yaml ${crSample}
+    # --templates ${templates}
 }
 
 waitEclipseCheDeployed() {
@@ -249,8 +259,13 @@ disableOpenShiftOAuth() {
 }
 
 getCRPath() {
-  compareResult=$(pysemver compare "${LAST_PACKAGE_VERSION}" "7.31.0")
-  if [ "${compareResult}" == "0" ]; then
+  if [ -z "${LAST_PACKAGE_VERSION:-}" ]; then
+    compareResult=1
+  else
+    compareResult=$(pysemver compare "${LAST_PACKAGE_VERSION}" "7.31.0")
+  fi
+
+  if [ "${compareResult}" -ge "0" ]; then
     local file="${1}/che-operator/samples/org.eclipse.che_v1_checluster.yaml"
   else
     local file="${1}/che-operator/crds/org_v1_che_cr.yaml"    
@@ -284,7 +299,7 @@ setIngressDomain() {
 }
 
 setCustomOperatorImage() {
-  local file="${1}/che-operator/samples/org.eclipse.che_v1_checluster.yaml"
+  local file="${1}/che-operator/manager/manager.yaml"
   yq -rSY '.spec.template.spec.containers[0].image = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
   yq -rSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
