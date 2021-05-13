@@ -20,7 +20,6 @@ if [ -z "${OPERATOR_REPO}" ]; then
   OPERATOR_REPO=$(dirname "$(dirname "$(dirname "$(dirname "$SCRIPT")")")")
 fi
 source "${OPERATOR_REPO}"/.github/bin/common.sh
-source "${OPERATOR_REPO}/olm/olm.sh"
 
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
@@ -36,7 +35,6 @@ prepareTemplates() {
   disableUpdateAdminPassword ${TEMPLATES}
   setCustomOperatorImage ${TEMPLATES} ${OPERATOR_IMAGE}
   setServerExposureStrategy ${TEMPLATES} "single-host"
-  # enableDevWorkspace ${TEMPLATES} true
   setSingleHostExposureType ${TEMPLATES} "native"
   setIngressDomain ${TEMPLATES} "$(minikube ip).nip.io"
 }
@@ -48,7 +46,6 @@ runTest() {
 }
 
 initDefaults
-installOperatorMarketPlace
 initLatestTemplates
 prepareTemplates
 buildCheOperatorImage
