@@ -39,7 +39,7 @@ spec:
             - --leader-elect
           image: quay.io/aandriienko/che-operator:nightly
           imagePullPolicy: Always
-          name: manager
+          name: che-operator
           env:
             - name: WATCH_NAMESPACE
               valueFrom:

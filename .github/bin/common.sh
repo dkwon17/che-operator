@@ -185,8 +185,8 @@ deployEclipseChe() {
     --chenamespace ${NAMESPACE} \
     --che-operator-image ${image} \
     --skip-kubernetes-health-check \
-    --che-operator-cr-yaml ${crSample}
-    # --templates ${templates}
+    --che-operator-cr-yaml ${crSample} \
+    --templates ${templates}
 }
 
 waitEclipseCheDeployed() {
@@ -253,48 +253,48 @@ disableOpenShiftOAuth() {
   yq -rSY '.spec.auth.openShiftoAuth = false' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
 
-getCRPath() {
-  if [ -z "${LAST_PACKAGE_VERSION:-}" ]; then
-    compareResult=1
-  else
-    compareResult=$(pysemver compare "${LAST_PACKAGE_VERSION}" "7.31.0")
-  fi
+# getCRPath() {
+#   if [ -z "${LAST_PACKAGE_VERSION:-}" ]; then
+#     compareResult=1
+#   else
+#     compareResult=$(pysemver compare "${LAST_PACKAGE_VERSION}" "7.31.0")
+#   fi
 
-  if [ "${compareResult}" -ge "0" ]; then
-    local file="${1}/che-operator/samples/org.eclipse.che_v1_checluster.yaml"
-  else
-    local file="${1}/che-operator/crds/org_v1_che_cr.yaml"    
-  fi
-  echo "${file}"
-}
+#   if [ "${compareResult}" -ge "0" ]; then
+#     local file="${1}/che-operator/samples/org.eclipse.che_v1_checluster.yaml"
+#   else
+#     local file="${1}/che-operator/crds/org_v1_che_cr.yaml"    
+#   fi
+#   echo "${file}"
+# }
 
 disableUpdateAdminPassword() {
-  file=$(getCRPath "${1}")
+  local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
   yq -rSY '.spec.auth.updateAdminPassword = false' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
 
 setServerExposureStrategy() {
-  file=$(getCRPath "${1}")
+  local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
   yq -rSY '.spec.server.serverExposureStrategy = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
 
 enableDevWorkspace() {
-  file=$(getCRPath "${1}")
+  local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
   yq -rSY '.spec.devWorkspace.enable = '${2}'' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
 
 setSingleHostExposureType() {
-  file=$(getCRPath "${1}")
+  local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
   yq -rSY '.spec.k8s.singleHostExposureType = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
 
 setIngressDomain() {
-  file=$(getCRPath "${1}")
+  local file="${1}/che-operator/crds/org_v1_che_cr.yaml"
   yq -rSY '.spec.k8s.ingressDomain = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
 
 setCustomOperatorImage() {
-  local file="${1}/che-operator/manager/manager.yaml"
+  local file="${1}/che-operator/operator.yaml"
   yq -rSY '.spec.template.spec.containers[0].image = "'${2}'"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
   yq -rSY '.spec.template.spec.containers[0].imagePullPolicy = "IfNotPresent"' $file > /tmp/tmp.yaml && mv /tmp/tmp.yaml ${file}
 }
@@ -356,6 +356,7 @@ function provisionOpenShiftOAuthUser() {
 }
 
 login() {
+  sleep 10
   local oauth=$(oc get checluster eclipse-che -n $NAMESPACE -o json | jq -r '.spec.auth.openShiftoAuth')
   if [[ ${oauth} == "true" ]]; then
     # log in using OpenShift token

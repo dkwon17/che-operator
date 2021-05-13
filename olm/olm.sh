@@ -149,7 +149,7 @@ buildBundleImage() {
 
   pushd "${ROOT_DIR}" || true
 
-  make bundles || true
+  make bundles || true # todo remove it...
   make bundle-build bundle-push BUNDLE_IMG="${CATALOG_BUNDLE_IMAGE_NAME_LOCAL}" platform="${platform}" IMAGE_TOOL="${imageTool}"
   popd || true
 }
@@ -417,7 +417,6 @@ spec:
   name: ${packageName}
   source: ${packageName}
   sourceNamespace: ${namespace}
-  startingCSV: ${CSV_NAME}
 EOF
 
   kubectl describe subscription/"${packageName}" -n "${namespace}"
