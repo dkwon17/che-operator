@@ -76,7 +76,7 @@ metadata:
     categories: Developer Tools
     certified: "false"
     containerImage: quay.io/aandriienko/che-operator:nightly
-    createdAt: "2021-05-13T11:20:17Z"
+    createdAt: "2021-05-13T11:51:03Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     operatorframework.io/suggested-namespace: eclipse-che
@@ -84,7 +84,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.31.0-272.nightly
+  name: eclipse-che-preview-kubernetes.v7.31.0-276.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -924,37 +924,6 @@ spec:
       permissions:
         - rules:
             - apiGroups:
-                - ""
-              resources:
-                - configmaps
-              verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
-            - apiGroups:
-                - coordination.k8s.io
-              resources:
-                - leases
-              verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
-            - apiGroups:
-                - ""
-              resources:
-                - events
-              verbs:
-                - create
-                - patch
-            - apiGroups:
                 - extensions
               resources:
                 - ingresses
@@ -1052,6 +1021,37 @@ spec:
               verbs:
                 - get
                 - list
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
           serviceAccountName: che-operator
     strategy: deployment
   installModes:
@@ -1083,4 +1083,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.31.0-272.nightly
+  version: 7.31.0-276.nightly
