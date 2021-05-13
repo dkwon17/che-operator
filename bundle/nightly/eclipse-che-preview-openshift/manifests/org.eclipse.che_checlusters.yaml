@@ -232,7 +232,7 @@ spec:
                     description: Optional repository name of an alternate container registry to pull images from. This value overrides the container registry organization defined in all the default container images involved in a Che deployment. This is particularly useful to install Eclipse Che in a restricted environment.
                     type: string
                   allowUserDefinedWorkspaceNamespaces:
-                    description: Defines that a user is allowed to specify a Kubernetes namespace, or an OpenShift project, which differs from the default. It's NOT RECOMMENDED to set to `true` without OpenShift OAuth configured. The OpenShift infrastructure also uses this property.
+                    description: Deprecated. The value of this flag is ignored. Defines that a user is allowed to specify a Kubernetes namespace, or an OpenShift project, which differs from the default. It's NOT RECOMMENDED to set to `true` without OpenShift OAuth configured. The OpenShift infrastructure also uses this property.
                     type: boolean
                   cheClusterRoles:
                     description: A comma-separated list of ClusterRoles that will be assigned to Che ServiceAccount. Be aware that the Che Operator has to already have all permissions in these ClusterRoles to grant them.

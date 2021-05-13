@@ -66,7 +66,7 @@ metadata:
     capabilities: Basic Install
     operators.operatorframework.io/builder: operator-sdk-v1.6.1+git
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
-  name: eclipse-che-preview-openshift.v7.31.0-252.nightly
+  name: eclipse-che-preview-openshift.v7.31.0-258.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -832,6 +832,9 @@ spec:
                       - containerPort: 8443
                         name: https
                     resources: {}
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      runAsNonRoot: true
                   - args:
                       - --health-probe-bind-address=:8081
                       - --metrics-bind-address=127.0.0.1:8080
@@ -912,6 +915,7 @@ spec:
                       timeoutSeconds: 5
                     name: manager
                     readinessProbe:
+                      failureThreshold: 10
                       httpGet:
                         path: /readyz
                         port: 8081
@@ -921,16 +925,21 @@ spec:
                       timeoutSeconds: 5
                     resources:
                       limits:
-                        cpu: 100m
-                        memory: 30Mi
+                        cpu: 500m
+                        memory: 256Mi
                       requests:
                         cpu: 100m
-                        memory: 20Mi
+                        memory: 64Mi
                     securityContext:
-                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                      privileged: false
+                      readOnlyRootFilesystem: false
+                hostIPC: false
+                hostNetwork: false
+                hostPID: false
                 restartPolicy: Always
-                securityContext:
-                  runAsNonRoot: true
                 serviceAccountName: che-operator-controller-manager
                 terminationGracePeriodSeconds: 20
       permissions:
@@ -1094,4 +1103,4 @@ spec:
   provider:
     name: Provider Name
     url: https://your.domain
-  version: 7.31.0-252.nightly
+  version: 7.31.0-258.nightly

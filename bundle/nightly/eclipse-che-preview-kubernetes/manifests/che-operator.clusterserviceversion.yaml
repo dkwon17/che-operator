@@ -76,7 +76,7 @@ metadata:
     categories: Developer Tools
     certified: "false"
     containerImage: quay.io/aandriienko/che-operator:nightly
-    createdAt: "2021-05-12T22:25:57Z"
+    createdAt: "2021-05-13T06:56:42Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     operatorframework.io/suggested-namespace: eclipse-che
@@ -84,7 +84,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.31.0-252.nightly
+  name: eclipse-che-preview-kubernetes.v7.31.0-258.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -894,6 +894,7 @@ spec:
                       timeoutSeconds: 5
                     name: manager
                     readinessProbe:
+                      failureThreshold: 10
                       httpGet:
                         path: /readyz
                         port: 8081
@@ -903,16 +904,21 @@ spec:
                       timeoutSeconds: 5
                     resources:
                       limits:
-                        cpu: 100m
-                        memory: 30Mi
+                        cpu: 500m
+                        memory: 256Mi
                       requests:
                         cpu: 100m
-                        memory: 20Mi
+                        memory: 64Mi
                     securityContext:
-                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                      privileged: false
+                      readOnlyRootFilesystem: false
+                hostIPC: false
+                hostNetwork: false
+                hostPID: false
                 restartPolicy: Always
-                securityContext:
-                  runAsNonRoot: true
                 serviceAccountName: che-operator-controller-manager
                 terminationGracePeriodSeconds: 20
       permissions:
@@ -1077,4 +1083,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.31.0-252.nightly
+  version: 7.31.0-258.nightly

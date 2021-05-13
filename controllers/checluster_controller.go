@@ -282,14 +282,16 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	isOpenShift4 := util.IsOpenShift4
 
 	// Check Che CR correctness
-	if err := ValidateCheCR(instance, isOpenShift); err != nil {
-		// Che cannot be deployed with current configuration.
-		// Print error message in logs and wait until the configuration is changed.
-		r.Log.Error(err, "")
-		if err := r.SetStatusDetails(instance, req, failedValidationReason, err.Error(), ""); err != nil {
-			return ctrl.Result{}, err
+	if !util.IsTestMode() {
+		if err := ValidateCheCR(instance); err != nil {
+			// Che cannot be deployed with current configuration.
+			// Print error message in logs and wait until the configuration is changed.
+			logrus.Error(err)
+			if err := r.SetStatusDetails(instance, req, failedValidationReason, err.Error(), ""); err != nil {
+				return reconcile.Result{}, err
+			}
+			return reconcile.Result{}, nil
 		}
-		return ctrl.Result{}, nil
 	}
 
 	if !util.IsTestMode() {
@@ -411,10 +413,11 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 
 		if util.IsOAuthEnabled(instance) {
 			// create a secret with OpenShift API crt to be added to keystore that RH SSO will consume
-			baseURL, err := util.GetClusterPublicHostname(isOpenShift4)
+			apiUrl, apiInternalUrl, err := util.GetOpenShiftAPIUrls()
 			if err != nil {
 				logrus.Errorf("Failed to get OpenShift cluster public hostname. A secret with API crt will not be created and consumed by RH-SSO/Keycloak")
 			} else {
+				baseURL := map[bool]string{true: apiInternalUrl, false: apiUrl}[apiInternalUrl != ""]
 				if err := deploy.CreateTLSSecretFromEndpoint(deployContext, baseURL, "openshift-api-crt"); err != nil {
 					return ctrl.Result{}, err
 				}
@@ -495,14 +498,6 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 			r.Log.Error(err, "")
 		}
 		return ctrl.Result{RequeueAfter: time.Second}, err
-	}
-
-	done, err = r.checkWorkspacePermissions(deployContext)
-	if !done {
-		if err != nil {
-			r.Log.Error(err, "")
-		}
-		return ctrl.Result{}, err
 	}
 
 	done, err = r.reconcileWorkspacePermissions(deployContext)

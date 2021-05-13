@@ -16,12 +16,12 @@ metadata:
   labels:
     control-plane: controller-manager
 spec:
+  replicas: 1
   selector:
     matchLabels:
       control-plane: controller-manager
   strategy:
     type: RollingUpdate
-  replicas: 1
   template:
     metadata:
       labels:
@@ -32,8 +32,6 @@ spec:
         app.kubernetes.io/managed-by: olm
         app.kubernetes.io/name: che
     spec:
-      securityContext:
-        runAsNonRoot: true
       containers:
         - command:
             - /manager
@@ -103,15 +101,13 @@ spec:
               value: che-postgres-secret
             - name: CHE_SERVER_TRUST_STORE_CONFIGMAP_NAME
               value: ca-certs
-          securityContext:
-            allowPrivilegeEscalation: false
           livenessProbe:
-            failureThreshold: 10
             httpGet:
               path: /healthz
               port: 8081
             initialDelaySeconds: 15
             periodSeconds: 10
+            failureThreshold: 10
             successThreshold: 1
             timeoutSeconds: 5
           readinessProbe:
@@ -120,15 +116,25 @@ spec:
               port: 8081
             initialDelaySeconds: 5
             periodSeconds: 10
+            failureThreshold: 10
             successThreshold: 1
             timeoutSeconds: 5
+          securityContext:
+            privileged: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
           resources:
-            limits:
-              cpu: 100m
-              memory: 30Mi
             requests:
+              memory: 64Mi
               cpu: 100m
-              memory: 20Mi
+            limits:
+              memory: 256Mi
+              cpu: 500m
+      hostIPC: false
+      hostNetwork: false
+      hostPID: false
+      restartPolicy: Always
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 20
-      restartPolicy: Always
