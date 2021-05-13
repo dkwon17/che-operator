@@ -6,8 +6,8 @@ require (
 	github.com/go-logr/logr v0.3.0
 	github.com/golang/mock v1.4.1
 	github.com/google/go-cmp v0.5.2
-	github.com/onsi/ginkgo v1.14.1
-	github.com/onsi/gomega v1.10.2
+	github.com/onsi/ginkgo v1.14.1 // indirect
+	github.com/onsi/gomega v1.10.2 // indirect
 	github.com/openshift/api v3.9.0+incompatible
 	github.com/operator-framework/api v0.8.0
 	github.com/sirupsen/logrus v1.6.0
