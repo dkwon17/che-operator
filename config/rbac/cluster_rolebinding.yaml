@@ -19,7 +19,7 @@ metadata:
     app.kubernetes.io/component: che-operator
 subjects:
   - kind: ServiceAccount
-    name: controller-manager
+    name: che-operator
     # namespace: eclipse-che
 roleRef:
   kind: ClusterRole

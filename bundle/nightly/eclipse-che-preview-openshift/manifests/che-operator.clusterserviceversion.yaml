@@ -66,7 +66,7 @@ metadata:
     capabilities: Basic Install
     operators.operatorframework.io/builder: operator-sdk-v1.6.1+git
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
-  name: eclipse-che-preview-openshift.v7.31.0-258.nightly
+  name: eclipse-che-preview-openshift.v7.31.0-276.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -799,14 +799,14 @@ spec:
                 - subjectaccessreviews
               verbs:
                 - create
-          serviceAccountName: che-operator-controller-manager
+          serviceAccountName: che-operator
       deployments:
-        - name: che-operator-controller-manager
+        - name: che-operator
           spec:
             replicas: 1
             selector:
               matchLabels:
-                control-plane: controller-manager
+                control-plane: che-operator
             strategy:
               type: RollingUpdate
             template:
@@ -817,7 +817,7 @@ spec:
                   app.kubernetes.io/instance: che
                   app.kubernetes.io/managed-by: olm
                   app.kubernetes.io/name: che
-                  control-plane: controller-manager
+                  control-plane: che-operator
               spec:
                 containers:
                   - args:
@@ -940,7 +940,7 @@ spec:
                 hostNetwork: false
                 hostPID: false
                 restartPolicy: Always
-                serviceAccountName: che-operator-controller-manager
+                serviceAccountName: che-operator
                 terminationGracePeriodSeconds: 20
       permissions:
         - rules:
@@ -1080,7 +1080,7 @@ spec:
               verbs:
                 - get
                 - list
-          serviceAccountName: che-operator-controller-manager
+          serviceAccountName: che-operator
     strategy: deployment
   installModes:
     - supported: false
@@ -1103,4 +1103,4 @@ spec:
   provider:
     name: Provider Name
     url: https://your.domain
-  version: 7.31.0-258.nightly
+  version: 7.31.0-276.nightly

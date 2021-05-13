@@ -14,4 +14,4 @@ data:
       resourceName: e79b08a4.org.eclipse.che
 kind: ConfigMap
 metadata:
-  name: che-operator-manager-config
+  name: manager-config

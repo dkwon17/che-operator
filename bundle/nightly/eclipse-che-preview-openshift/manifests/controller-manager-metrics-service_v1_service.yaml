@@ -3,14 +3,14 @@ kind: Service
 metadata:
   creationTimestamp: null
   labels:
-    control-plane: controller-manager
-  name: che-operator-controller-manager-metrics-service
+    control-plane: che-operator
+  name: controller-manager-metrics-service
 spec:
   ports:
   - name: https
     port: 8443
     targetPort: https
   selector:
-    control-plane: controller-manager
+    control-plane: che-operator
 status:
   loadBalancer: {}

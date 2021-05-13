@@ -11,21 +11,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: controller-manager
+  name: che-operator
   namespace: system
   labels:
-    control-plane: controller-manager
+    control-plane: che-operator
 spec:
   replicas: 1
   selector:
     matchLabels:
-      control-plane: controller-manager
+      control-plane: che-operator
   strategy:
     type: RollingUpdate
   template:
     metadata:
       labels:
-        control-plane: controller-manager
+        control-plane: che-operator
         app: che-operator
         app.kubernetes.io/component: che-operator
         app.kubernetes.io/instance: che
@@ -136,5 +136,5 @@ spec:
       hostNetwork: false
       hostPID: false
       restartPolicy: Always
-      serviceAccountName: controller-manager
+      serviceAccountName: che-operator
       terminationGracePeriodSeconds: 20
