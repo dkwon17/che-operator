@@ -163,21 +163,21 @@ deployEclipseChe() {
   local image=$3
   local templates=$4
 
-  if [ -z "${LAST_PACKAGE_VERSION:-}" ]; then
-    echo "[INFO] Eclipse Che custom resource"
-    local crSample=${templates}/che-operator/samples/org.eclipse.che_v1_checluster.yaml
-    cat ${crSample}
+  # if [ -z "${LAST_PACKAGE_VERSION:-}" ]; then
+  #   echo "[INFO] Eclipse Che custom resource"
+  #   local crSample=${templates}/che-operator/samples/org.eclipse.che_v1_checluster.yaml
+  #   cat ${crSample}
 
-    echo "[INFO] Eclipse Che operator deployment"
-    cat ${templates}/che-operator/manager/manager.yaml
-  else
+  #   echo "[INFO] Eclipse Che operator deployment"
+  #   cat ${templates}/che-operator/manager/manager.yaml
+  # else
     echo "[INFO] Eclipse Che custom resource"
     local crSample=${templates}/che-operator/crds/org_v1_che_cr.yaml
     cat ${crSample}
 
     echo "[INFO] Eclipse Che operator deployment"
     cat ${templates}/che-operator/operator.yaml
-  fi
+  # fi
 
   chectl server:deploy \
     --platform=${platform} \
