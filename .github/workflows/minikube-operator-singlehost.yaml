@@ -18,19 +18,21 @@ jobs:
     steps:
     - uses: actions/checkout@v1
 
-    - name: Set up Python 3.6
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.6
+    # - name: Set up Python 3.6
+    #   uses: actions/setup-python@v2
+    #   with:
+    #     python-version: 3.6
     - name: Install yq and pysemver
       run: |
         python -m pip install --upgrade pip
-        pip install operator-courier==2.1.7
+        # pip install operator-courier==2.1.7
         pip install wheel;
         sudo pip install yq;
         sudo pip install pysemver;
+        echo "[INFO] pysemver version:"
         pysemver --version;
-        yq --version;
+        echo "[INFO] yq version:"
+        yq --version; exit 127;
     - name: Provision Minikube cluster
       run: |
         curl -LO https://storage.googleapis.com/minikube/releases/v1.18.1/minikube-linux-amd64
