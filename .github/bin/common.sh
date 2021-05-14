@@ -109,6 +109,7 @@ waitWorkspaceStart() {
     login
 
     chectl workspace:list --chenamespace=${NAMESPACE}
+    # workspaceStatus=$(chectl workspace:list --chenamespace=${NAMESPACE} | tail -1 | awk '{ print $4} ' || true)
     workspaceStatus=$(chectl workspace:list --chenamespace=${NAMESPACE} | tail -1 | awk '{ print $4} ')
 
     if [ "${workspaceStatus}" == "RUNNING" ]; then
@@ -367,7 +368,6 @@ function provisionOpenShiftOAuthUser() {
 }
 
 login() {
-  sleep 10
   local oauth=$(kubectl get checluster eclipse-che -n $NAMESPACE -o json | jq -r '.spec.auth.openShiftoAuth')
   if [[ ${oauth} == "true" ]]; then
     # log in using OpenShift token
