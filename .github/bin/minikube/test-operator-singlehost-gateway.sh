@@ -25,7 +25,7 @@ source "${OPERATOR_REPO}"/.github/bin/common.sh
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-prepareTemplates() {
+patchTemplates() {
   disableUpdateAdminPassword ${TEMPLATES}
   setCustomOperatorImage ${TEMPLATES} ${OPERATOR_IMAGE}
   setServerExposureStrategy ${TEMPLATES} "single-host"
@@ -42,6 +42,7 @@ runTest() {
 initDefaults
 initLatestTemplates
 prepareTemplates
+patchTemplates
 buildCheOperatorImage
 copyCheOperatorImageToMinikube
 runTest

@@ -157,6 +157,16 @@ copyCheOperatorImageToMinishift() {
   eval $(minishift docker-env) && docker load -i  /tmp/operator.tar && rm  /tmp/operator.tar
 }
 
+# Prepare chectl che-operator templates
+prepareTemplates() {
+  OPERATOR_TEMPLATES="${TEMPLATES}"/che-operator
+  mkdir -p "${OPERATOR_TEMPLATES}"
+  cp -rf config/rbac/* "${OPERATOR_TEMPLATES}"/
+  cp -rf config/manager/manager.yaml "${OPERATOR_TEMPLATES}"/operator.yaml
+  cp -rf config/crd/bases/ "${OPERATOR_TEMPLATES}"/crds
+  cp -f config/samples/org.eclipse.che_v1_checluster.yaml "${OPERATOR_TEMPLATES}"/crds/org_v1_che_cr.yaml
+}
+
 deployEclipseChe() {
   local installer=$1
   local platform=$2

@@ -24,14 +24,7 @@ source "${OPERATOR_REPO}"/.github/bin/common.sh
 # Stop execution on any error
 trap "catchFinish" EXIT SIGINT
 
-prepareTemplates() {
-  OPERATOR_TEMPLATES="${TEMPLATES}"/che-operator
-  mkdir -p "${OPERATOR_TEMPLATES}"
-  cp -rf config/rbac/* "${OPERATOR_TEMPLATES}"/
-  cp -rf config/manager/manager.yaml "${OPERATOR_TEMPLATES}"/operator.yaml
-  cp -rf config/crd/bases/ "${OPERATOR_TEMPLATES}"/crds
-  cp -f config/samples/org.eclipse.che_v1_checluster.yaml "${OPERATOR_TEMPLATES}"/crds/org_v1_che_cr.yaml
-
+patchTemplates() {
   disableUpdateAdminPassword ${TEMPLATES}
   setCustomOperatorImage ${TEMPLATES} ${OPERATOR_IMAGE}
   setServerExposureStrategy ${TEMPLATES} "single-host"
@@ -48,6 +41,7 @@ runTest() {
 initDefaults
 initLatestTemplates
 prepareTemplates
+patchTemplates
 buildCheOperatorImage
 copyCheOperatorImageToMinikube
 runTest
