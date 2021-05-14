@@ -25,7 +25,7 @@ jobs:
         echo "[INFO] pysemver version:"
         pysemver --version;
         echo "[INFO] yq version:"
-        yq --version; exit 127;
+        yq --version;
     - name: Provision Minikube cluster
       run: |
         curl -LO https://storage.googleapis.com/minikube/releases/v1.18.1/minikube-linux-amd64
