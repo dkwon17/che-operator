@@ -277,7 +277,7 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 
 	operator-sdk generate kustomize manifests -q
 	pushd config/manager || true && $(KUSTOMIZE) edit set image controller=$(IMG) && popd || true
-	$(KUSTOMIZE) build config/manifests | \
+	$(KUSTOMIZE) build config/platforms/$(platform) | \
 	operator-sdk generate bundle \
 	-q --overwrite --version $(VERSION) \
 	--package $${BUNDLE_PACKAGE} \

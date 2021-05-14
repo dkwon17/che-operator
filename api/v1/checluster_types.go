@@ -666,9 +666,7 @@ type CheClusterStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:openapi-gen=true
-// +kubebuilder:subresource:status
 // +operator-sdk:gen-csv:customresourcedefinitions.displayName="Eclipse Che Cluster"
 
 // The `CheCluster` custom resource allows defining and managing a Che server installation
@@ -681,8 +679,6 @@ type CheCluster struct {
 }
 
 //+kubebuilder:object:root=true
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 // CheClusterList contains a list of CheCluster
 type CheClusterList struct {
 	metav1.TypeMeta `json:",inline"`

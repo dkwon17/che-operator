@@ -12,7 +12,7 @@ metadata:
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v0.0.0
+  name: eclipse-che-preview-.v0.0.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
