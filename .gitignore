@@ -83,7 +83,7 @@ anaconda-mode/
 *.dll
 *.so
 *.dylib
-cmd/manager/__debug_bin
+__debug_bin
 bin
 testbin/*
 

@@ -314,7 +314,8 @@ func getAPIUrlsForOpenShiftV4() (apiUrl string, apiInternalUrl string, err error
 }
 
 func GetDeploymentEnv(deployment *appsv1.Deployment, key string) (value string) {
-	env := deployment.Spec.Template.Spec.Containers[1].Env
+	// Todo "metrics proxy" 0 => 1
+	env := deployment.Spec.Template.Spec.Containers[0].Env
 	for i := range env {
 		name := env[i].Name
 		if name == key {

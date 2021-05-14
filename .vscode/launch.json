@@ -186,7 +186,7 @@
       "cwd": "${workspaceFolder}",
       "args": [
         "--defaults-path",
-        "config/default/manager_auth_proxy_patch.yaml"
+        "config/manager/manager.yaml"
       ]
     }
   ]

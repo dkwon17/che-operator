@@ -225,9 +225,9 @@ create-env-file: prepare-templates
 
 create-full-env-file: create-env-file
 	cat ./config/default/manager_auth_proxy_patch.yaml | \
-	yq -r '.spec.template.spec.containers[1].env[] | "export \(.name)=\"$${\(.name):-\(.value)}\""' \
+	yq -r '.spec.template.spec.containers[1].env[] | "export \(.name)=\"$${\(.name):-\(.value)}\""' \ # Todo "metrics proxy" 0 => 1
 	>> ${ENV_FILE}
-	echo "[INFO] ${ENV_FILE}"
+	echo "[INFO] Env file: ${ENV_FILE}"
 	source ${ENV_FILE} ; env | grep CHE_VERSION
 
 debug: prepare-templates create-namespace apply-cr-crd create-env-file manifests kustomize
