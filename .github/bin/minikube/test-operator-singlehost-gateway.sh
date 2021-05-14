@@ -35,9 +35,8 @@ patchTemplates() {
 
 runTest() {
   deployEclipseChe "operator" "minikube" ${OPERATOR_IMAGE} ${TEMPLATES}
-  sleep 10
+  sleep 30
   startNewWorkspace
-  sleep 10
   waitWorkspaceStart
 }
 
