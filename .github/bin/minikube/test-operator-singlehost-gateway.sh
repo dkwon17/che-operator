@@ -37,6 +37,7 @@ runTest() {
   deployEclipseChe "operator" "minikube" ${OPERATOR_IMAGE} ${TEMPLATES}
   sleep 10
   startNewWorkspace
+  sleep 10
   waitWorkspaceStart
 }
 
