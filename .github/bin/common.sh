@@ -47,6 +47,7 @@ initDefaults() {
 }
 
 initLatestTemplates() {
+rm -rf /tmp/devfile-devworkspace-operator-*
 curl -L https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV_WORKSPACE_CONTROLLER_VERSION} > /tmp/devworkspace-operator.zip && \
   unzip /tmp/devworkspace-operator.zip */deploy/deployment/* -d /tmp && \
   mkdir -p /tmp/devworkspace-operator/templates/ && \

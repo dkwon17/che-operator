@@ -14,18 +14,17 @@ metadata:
   name: che-operator
   namespace: system
   labels:
-    control-plane: che-operator
+    app: che-operator
 spec:
   replicas: 1
   selector:
     matchLabels:
-      control-plane: che-operator
+      app: che-operator
   strategy:
     type: RollingUpdate
   template:
     metadata:
       labels:
-        control-plane: che-operator
         app: che-operator
         app.kubernetes.io/component: che-operator
         app.kubernetes.io/instance: che
