@@ -156,7 +156,7 @@
         },
         {
             "label": "Install che-operator via OLM",
-            "command": "operator-sdk run bundle ${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator-bundle:v0.0.1 --namespace ${NAMESPACE}; kubectl apply -f config/samples/cache_v1_checluster.yaml -n ${NAMESPACE}",
+            "command": "operator-sdk run bundle ${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator-bundle:v0.0.1 --namespace ${NAMESPACE}; kubectl apply -f config/samples/org.eclipse.che_v1_checluster.yaml -n ${NAMESPACE}",
             "type": "shell",
             "args": [],
             "problemMatcher": [
@@ -228,7 +228,7 @@
 
         {
             "label": "Deploy che-operator",
-            "command": "make deploy IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:nightly\"; kubectl apply -f config/samples/cache_v1_checluster.yaml -n eclipse-che",
+            "command": "make deploy IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:nightly\"; kubectl apply -f config/samples/org.eclipse.che_v1_checluster.yaml -n eclipse-che",
             "type": "shell",
             "args": [],
             "problemMatcher": [
@@ -242,6 +242,19 @@
         {
             "label": "UnDeploy che-operator",
             "command": "make undeploy",
+            "type": "shell",
+            "args": [],
+            "problemMatcher": [
+                "$go"
+            ],
+            "presentation": {
+                "reveal": "always"
+            },
+            "group": "build"
+        },
+        {
+            "label": "Await debugger attach for che-operator",
+            "command": "make debug",
             "type": "shell",
             "args": [],
             "problemMatcher": [

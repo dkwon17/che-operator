@@ -6,17 +6,16 @@ require (
 	github.com/go-logr/logr v0.3.0
 	github.com/golang/mock v1.4.1
 	github.com/google/go-cmp v0.5.2
-	github.com/onsi/ginkgo v1.14.1 // indirect
-	github.com/onsi/gomega v1.10.2 // indirect
 	github.com/openshift/api v3.9.0+incompatible
 	github.com/operator-framework/api v0.8.0
-	github.com/sirupsen/logrus v1.6.0
-	go.uber.org/zap v1.10.0
-	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
-	k8s.io/api v0.20.2
-	k8s.io/apiextensions-apiserver v0.20.1
-	k8s.io/apimachinery v0.20.2
-	k8s.io/client-go v0.20.2
+	github.com/operator-framework/operator-lifecycle-manager v0.18.1
+	github.com/sirupsen/logrus v1.7.0
+	go.uber.org/zap v1.13.0
+	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb
+	k8s.io/api v0.20.6
+	k8s.io/apiextensions-apiserver v0.20.6
+	k8s.io/apimachinery v0.20.6
+	k8s.io/client-go v0.20.6
 	sigs.k8s.io/controller-runtime v0.8.3
 	sigs.k8s.io/yaml v1.2.0
 )

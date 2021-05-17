@@ -167,7 +167,7 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 ENV_FILE="/tmp/che-operator-debug.env"
 ECLIPSE_CHE_NAMESPACE="eclipse-che"
 ECLIPSE_CHE_CR=config/samples/org.eclipse.che_v1_checluster.yaml
-ECLIPSE_CHE_CRD=config/crd/bases/org.eclipse.che_checlusters.yaml
+ECLIPSE_CHE_CRD=config/crd/bases/org_v1_che_crd.yaml
 DEV_WORKSPACE_CONTROLLER_VERSION="main"
 DEV_WORKSPACE_CHE_OPERATOR_VERSION="main"
 

@@ -29,24 +29,96 @@ import (
 	osruntime "runtime"
 
 	"fmt"
-
+	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/controllers"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/signal"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/go-logr/logr"
+	configv1 "github.com/openshift/api/config/v1"
+	oauthv1 "github.com/openshift/api/config/v1"
+	consolev1 "github.com/openshift/api/console/v1"
+	oauth "github.com/openshift/api/oauth/v1"
+
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
+	
+	cachev1 "github.com/eclipse-che/che-operator/api/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	rbac "k8s.io/api/rbac/v1"
+	packagesv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
+	operatorsv1 "github.com/operator-framework/api/pkg/operators/v1"
+	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
+
+	routev1 "github.com/openshift/api/route/v1"
+	userv1 "github.com/openshift/api/user/v1"
+	corev1 "k8s.io/api/core/v1"
 	//+kubebuilder:scaffold:imports
 )
 
 var (
-	defaultsPath string
 	scheme       = runtime.NewScheme()
 	setupLog     = ctrl.Log.WithName("setup")
+	defaultsPath string
+	metricsAddr string
+	enableLeaderElection bool
+	probeAddr string
 )
 
 func init() {
 	flag.StringVar(&defaultsPath, "defaults-path", "", "Path to file with operator deployment defaults. This option is useful for local development.")
+	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
+		"Enable leader election for controller manager. "+
+			"Enabling this will ensure there is only one active controller manager.")
+
+	opts := zap.Options{
+		Development: true,
+		Level:       getLogLevel(),
+	}
+	opts.BindFlags(flag.CommandLine)
+	flag.Parse()
+
+	logger := zap.New(zap.UseFlagOptions(&opts))
+	ctrl.SetLogger(logger)
+
+	deploy.InitDefaults(defaultsPath)
+
+	if _, _, err := util.DetectOpenShift(); err != nil {
+		logger.Error(err, "Unable determine installation platform")
+		os.Exit(1)
+	}
+
+	printVersion(logger)
+
 	//+kubebuilder:scaffold:scheme
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(cachev1.AddToScheme(scheme))
+	utilruntime.Must(admissionregistrationv1.AddToScheme(scheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
+	utilruntime.Must(rbac.AddToScheme(scheme))
+
+	// Setup Scheme for all resources
+	utilruntime.Must(orgv1.AddToScheme(scheme))
+	// if err := image_puller_api.AddToScheme(mgr.GetScheme()); err != nil {
+	// 	logrus.Error(err, "")
+	// 	os.Exit(1)
+	// }
+	utilruntime.Must(packagesv1.AddToScheme(scheme))
+	utilruntime.Must(operatorsv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(operatorsv1.AddToScheme(scheme))
+
+	if util.IsOpenShift {
+		utilruntime.Must(routev1.AddToScheme(scheme))
+		utilruntime.Must(oauth.AddToScheme(scheme))
+		utilruntime.Must(userv1.AddToScheme(scheme))
+		utilruntime.Must(oauthv1.AddToScheme(scheme))
+		utilruntime.Must(configv1.AddToScheme(scheme))
+		utilruntime.Must(corev1.AddToScheme(scheme))
+		utilruntime.Must(consolev1.AddToScheme(scheme))
+	}
 }
 
 func getLogLevel() zapcore.Level {
@@ -69,16 +141,11 @@ func getLogLevel() zapcore.Level {
 func printVersion(logger logr.Logger) {
 	logger.Info("Binary info ", "Go version", osruntime.Version())
 	logger.Info("Binary info ", "OS", osruntime.GOOS, "Arch", osruntime.GOARCH)
-	// logger.Info("operator-sdk Version: %v", sdkVersion.Version)
-	isOpenShift, isOpenShift4, err := util.DetectOpenShift()
-	if err != nil {
-		logger.Error(err, "Operator is exiting. An error occurred when detecting current infra.")
-		return
-	}
+
 	infra := "Kubernetes"
-	if isOpenShift {
+	if util.IsOpenShift {
 		infra = "OpenShift"
-		if isOpenShift4 {
+		if util.IsOpenShift4 {
 			infra += " v4.x"
 		} else {
 			infra += " v3.x"
@@ -98,31 +165,12 @@ func getWatchNamespace() (string, error) {
 	if !found {
 		return "", fmt.Errorf("%s must be set", watchNamespaceEnvVar)
 	}
+
 	return ns, nil
 }
 
 func main() {
-	var metricsAddr string
-	var enableLeaderElection bool
-	var probeAddr string
-	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
-		"Enable leader election for controller manager. "+
-			"Enabling this will ensure there is only one active controller manager.")
-
-	opts := zap.Options{
-		Development: true,
-		Level:       getLogLevel(),
-	}
-	opts.BindFlags(flag.CommandLine)
-	flag.Parse()
-
-	logger := zap.New(zap.UseFlagOptions(&opts))
-	ctrl.SetLogger(logger)
-
-	deploy.InitDefaults(defaultsPath)
-	printVersion(logger)
+	
 
 	watchNamespace, err := getWatchNamespace()
 	if err != nil {

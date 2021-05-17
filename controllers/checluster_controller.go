@@ -48,19 +48,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	cachev1 "github.com/eclipse-che/che-operator/api/v1"
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
-	configv1 "github.com/openshift/api/config/v1"
-	oauthv1 "github.com/openshift/api/config/v1"
-	consolev1 "github.com/openshift/api/console/v1"
-	oauth "github.com/openshift/api/oauth/v1"
 	userv1 "github.com/openshift/api/user/v1"
-	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/api/extensions/v1beta1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
 var (
@@ -109,7 +100,7 @@ type CheClusterReconciler struct {
 
 // NewReconciler returns a new CheClusterReconciler
 func NewReconciler(mgr ctrl.Manager) (*CheClusterReconciler, error) {
-	noncachedClient, err := client.New(mgr.GetConfig(), client.Options{})
+	noncachedClient, err := client.New(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme()})
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +124,7 @@ func NewReconciler(mgr ctrl.Manager) (*CheClusterReconciler, error) {
 func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	isOpenShift := util.IsOpenShift
 
-	r.registerSchema(mgr.GetScheme())
+	// r.registerSchema(mgr.GetScheme())
 
 	onAllExceptGenericEventsPredicate := predicate.Funcs{
 		UpdateFunc: func(evt event.UpdateEvent) bool {
@@ -236,7 +227,7 @@ func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // the user.
 //
 // For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.2/pkg/reconcile
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.6.3/pkg/reconcile
 func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	_ = r.Log.WithValues("checluster", req.NamespacedName)
 
@@ -836,25 +827,6 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	}
 
 	return ctrl.Result{}, nil
-}
-
-func (r *CheClusterReconciler) registerSchema(mainScheme *runtime.Scheme) {
-	utilruntime.Must(clientgoscheme.AddToScheme(mainScheme))
-	utilruntime.Must(cachev1.AddToScheme(mainScheme))
-	utilruntime.Must(apiextensionsv1.AddToScheme(mainScheme))
-	utilruntime.Must(admissionregistrationv1.AddToScheme(mainScheme))
-	utilruntime.Must(rbac.AddToScheme(mainScheme))
-
-	// register OpenShift specific types in the scheme
-	if util.IsOpenShift {
-		utilruntime.Must(routev1.AddToScheme(mainScheme))
-		utilruntime.Must(oauth.AddToScheme(mainScheme))
-		utilruntime.Must(userv1.AddToScheme(mainScheme))
-		utilruntime.Must(oauthv1.AddToScheme(mainScheme))
-		utilruntime.Must(configv1.AddToScheme(mainScheme))
-		utilruntime.Must(corev1.AddToScheme(mainScheme))
-		utilruntime.Must(consolev1.AddToScheme(mainScheme))
-	}
 }
 
 func isTrustedBundleConfigMap(mgr ctrl.Manager, obj handler.MapObject) (bool, reconcile.Request) {
