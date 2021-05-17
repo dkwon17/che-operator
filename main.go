@@ -54,6 +54,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	userv1 "github.com/openshift/api/user/v1"
 	corev1 "k8s.io/api/core/v1"
+	image_puller_api "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -102,10 +103,7 @@ func init() {
 
 	// Setup Scheme for all resources
 	utilruntime.Must(orgv1.AddToScheme(scheme))
-	// if err := image_puller_api.AddToScheme(mgr.GetScheme()); err != nil {
-	// 	logrus.Error(err, "")
-	// 	os.Exit(1)
-	// }
+	utilruntime.Must(image_puller_api.AddToScheme(scheme))
 	utilruntime.Must(packagesv1.AddToScheme(scheme))
 	utilruntime.Must(operatorsv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(operatorsv1.AddToScheme(scheme))

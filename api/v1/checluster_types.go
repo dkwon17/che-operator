@@ -20,7 +20,7 @@ package v1
 // IMPORTANT These 2 last steps are important to ensure backward compatibility with already existing `CheCluster` CRs that were created when no schema was provided.
 
 import (
-	// chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1"
+	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -53,9 +53,9 @@ type CheClusterSpec struct {
 	// +optional
 	K8s CheClusterSpecK8SOnly `json:"k8s"`
 
-	// // Kubernetes Image Puller configuration
-	// // +optional
-	// ImagePuller CheClusterSpecImagePuller `json:"imagePuller"`
+	// Kubernetes Image Puller configuration
+	// +optional
+	ImagePuller CheClusterSpecImagePuller `json:"imagePuller"`
 
 	// Dev Workspace operator configuration
 	// +optional
@@ -555,22 +555,22 @@ type CheClusterSpecMetrics struct {
 	Enable bool `json:"enable"`
 }
 
-// // +k8s:openapi-gen=true
-// // Configuration settings for installation and configuration of the Kubernetes Image Puller
-// // See https://github.com/che-incubator/kubernetes-image-puller-operator
-// type CheClusterSpecImagePuller struct {
-// 	// Install and configure the Community Supported Kubernetes Image Puller Operator. When set to `true` and no spec is provided,
-// 	// it will create a default KubernetesImagePuller object to be managed by the Operator.
-// 	// When set to `false`, the KubernetesImagePuller object will be deleted, and the Operator will be uninstalled,
-// 	// regardless of whether a spec is provided.
-// 	//
-// 	// Note that while this the Operator and its behavior is community-supported, its payload may be commercially-supported
-// 	// for pulling commercially-supported images.
-// 	Enable bool `json:"enable"`
-// 	// A KubernetesImagePullerSpec to configure the image puller in the CheCluster
-// 	// +optional
-// 	Spec chev1alpha1.KubernetesImagePullerSpec `json:"spec"`
-// }
+// +k8s:openapi-gen=true
+// Configuration settings for installation and configuration of the Kubernetes Image Puller
+// See https://github.com/che-incubator/kubernetes-image-puller-operator
+type CheClusterSpecImagePuller struct {
+	// Install and configure the Community Supported Kubernetes Image Puller Operator. When set to `true` and no spec is provided,
+	// it will create a default KubernetesImagePuller object to be managed by the Operator.
+	// When set to `false`, the KubernetesImagePuller object will be deleted, and the Operator will be uninstalled,
+	// regardless of whether a spec is provided.
+	//
+	// Note that while this the Operator and its behavior is community-supported, its payload may be commercially-supported
+	// for pulling commercially-supported images.
+	Enable bool `json:"enable"`
+	// A KubernetesImagePullerSpec to configure the image puller in the CheCluster
+	// +optional
+	Spec chev1alpha1.KubernetesImagePullerSpec `json:"spec"`
+}
 
 // +k8s:openapi-gen=true
 // Settings for installation and configuration of the Dev Workspace operator
@@ -695,6 +695,6 @@ func (c *CheCluster) IsAirGapMode() bool {
 		c.Spec.Server.AirGapContainerRegistryOrganization != ""
 }
 
-// func (c *CheCluster) IsImagePullerSpecEmpty() bool {
-// 	return c.Spec.ImagePuller.Spec == (chev1alpha1.KubernetesImagePullerSpec{})
-// }
+func (c *CheCluster) IsImagePullerSpecEmpty() bool {
+	return c.Spec.ImagePuller.Spec == (chev1alpha1.KubernetesImagePullerSpec{})
+}

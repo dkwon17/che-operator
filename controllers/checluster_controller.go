@@ -124,8 +124,6 @@ func NewReconciler(mgr ctrl.Manager) (*CheClusterReconciler, error) {
 func (r *CheClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	isOpenShift := util.IsOpenShift
 
-	// r.registerSchema(mgr.GetScheme())
-
 	onAllExceptGenericEventsPredicate := predicate.Funcs{
 		UpdateFunc: func(evt event.UpdateEvent) bool {
 			return true
@@ -261,13 +259,13 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	r.reconcileFinalizers(deployContext)
 
 	// Reconcile the imagePuller section of the CheCluster
-	// imagePullerResult, err := deploy.ReconcileImagePuller(deployContext)
-	// if err != nil {
-	// 	return imagePullerResult, err
-	// }
-	// if imagePullerResult.Requeue || imagePullerResult.RequeueAfter > 0 {
-	// 	return imagePullerResult, err
-	// }
+	imagePullerResult, err := deploy.ReconcileImagePuller(deployContext)
+	if err != nil {
+		return imagePullerResult, err
+	}
+	if imagePullerResult.Requeue || imagePullerResult.RequeueAfter > 0 {
+		return imagePullerResult, err
+	}
 
 	isOpenShift := util.IsOpenShift
 	isOpenShift4 := util.IsOpenShift4
