@@ -28,6 +28,10 @@ BUNDLE_DEFAULT_CHANNEL := --default-channel=$(DEFAULT_CHANNEL)
 endif
 BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 
+# ifeq ($(OPERATOR_SDK_BINARY),)
+OPERATOR_SDK_BINARY ?= operator-sdk
+# endif
+
 # IMAGE_TAG_BASE defines the docker.io namespace and part of the image name for remote images.
 # This variable is used to construct full image tags for bundle and catalog images.
 #
@@ -275,10 +279,10 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 	GENERATED_CSV_NAME=$${BUNDLE_PACKAGE}.clusterserviceversion.yaml
 	DESIRED_CSV_NAME=che-operator.clusterserviceversion.yaml
 
-	operator-sdk generate kustomize manifests -q
+	$(OPERATOR_SDK_BINARY) generate kustomize manifests -q
 	pushd config/manager || true && $(KUSTOMIZE) edit set image controller=$(IMG) && popd || true
 	$(KUSTOMIZE) build config/platforms/$(platform) | \
-	operator-sdk generate bundle \
+	$(OPERATOR_SDK_BINARY) generate bundle \
 	-q --overwrite --version $(VERSION) \
 	--package $${BUNDLE_PACKAGE} \
 	--output-dir $${BUNDLE_DIR} \
@@ -289,7 +293,7 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 	pushd $${BUNDLE_DIR}/manifests || true; 
 	mv $${GENERATED_CSV_NAME} $${DESIRED_CSV_NAME}
 	popd || true
-	operator-sdk bundle validate ./$${BUNDLE_DIR}
+	$(OPERATOR_SDK_BINARY) bundle validate ./$${BUNDLE_DIR}
 
 bundles:
 	$(shell ./olm/update-resources.sh)
