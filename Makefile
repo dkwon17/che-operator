@@ -88,18 +88,17 @@ removeRequiredAttribute:
 
 	while IFS= read -r line;
 	do
-		if [[ $${REQUIRED} == true ]]; then
-			if [[ $${line} == *"- "* ]]; then
-				continue
-			else
-				REQUIRED=false
-			fi
+		if [ $${REQUIRED} = true ]; then
+			case "$${line}" in
+			*"- "*) continue  ;;
+			*)      REQUIRED=false
+			esac
 		fi
 
-		if [[ $${line} == *"required:"* ]]; then
-			REQUIRED=true
-			continue
-		fi
+		case "$${line}" in
+		*"required:"*) REQUIRED=true; continue  ;;
+		*)
+		esac
 
 		echo  "$${line}" >> $${filePath}.tmp
 	done < "$${filePath}"
