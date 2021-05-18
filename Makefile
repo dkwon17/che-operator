@@ -111,14 +111,14 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 	$(CONTROLLER_GEN) $(CRD_BETA_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:stdout > config/crd/bases/org_v1_che_crd-v1beta1.yaml
 
 	# Rename and patch CRDs
-	pushd config/crd/bases || true
+	cd config/crd/bases
 
 	mv org.eclipse.che_checlusters.yaml org_v1_che_crd.yaml
 	sed -i.bak '/---/d' org_v1_che_crd-v1beta1.yaml
 	sed -i.bak '/---/d' org_v1_che_crd.yaml
 	rm -rf org_v1_che_crd-v1beta1.yaml.bak org_v1_che_crd.yaml.bak
 
-	popd || true
+	cd ../../..
 
 	$(MAKE) removeRequiredAttribute "filePath=config/crd/bases/org_v1_che_crd-v1beta1.yaml"
 
@@ -280,7 +280,7 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 	DESIRED_CSV_NAME=che-operator.clusterserviceversion.yaml
 
 	$(OPERATOR_SDK_BINARY) generate kustomize manifests -q
-	pushd config/manager || true && $(KUSTOMIZE) edit set image controller=$(IMG) && popd || true
+	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG) && cd ../..
 	$(KUSTOMIZE) build config/platforms/$(platform) | \
 	$(OPERATOR_SDK_BINARY) generate bundle \
 	-q --overwrite --version $(VERSION) \
