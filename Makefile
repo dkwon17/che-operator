@@ -7,6 +7,9 @@ VERSION ?= 1.0.2
 
 CHANNELS = "nightly"
 
+mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
+mkfile_dir := $(dir $(mkfile_path))
+
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "preview,fast,stable")
 # To re-generate a bundle for other specific channels without changing the standard setup, you can:
@@ -289,9 +292,10 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 
 	rm -rf bundle.Dockerfile
 
-	cd $${BUNDLE_DIR}/manifests; 
+	cd $${BUNDLE_DIR}/manifests;
 	mv $${GENERATED_CSV_NAME} $${DESIRED_CSV_NAME}
-	cd ..
+	cd $(mkfile_dir)
+
 	$(OPERATOR_SDK_BINARY) bundle validate ./$${BUNDLE_DIR}
 
 bundles:
