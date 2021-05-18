@@ -10,9 +10,9 @@
 # Contributors:
 #   Red Hat, Inc. - initial API and implementation
 
-# Generated CRDs based on pkg/apis/org/v1/che_types.go:
-# - deploy/crds/org_v1_che_crd.yaml
-# - deploy/crds/org_v1_che_crd-v1beta1.yaml
+# Generated CRDs based on api/v1/checluster_types.go:
+# - config/crd/bases/org_v1_che_crd.yaml
+# - config/crd/bases/org_v1_che_crd-v1beta1.yaml
 
 set -e
 
@@ -118,6 +118,8 @@ updateNighltyBundle() {
     newNightlyBundleVersion=$(yq -r ".spec.version" "${NEW_CSV}")
     echo "[INFO] Creation new nightly bundle version: ${newNightlyBundleVersion}"
 
+    createdAtOld=$(yq -r ".metadata.annotations.createdAt" "${NEW_CSV}")
+
     pushd "${ROOT_PROJECT_DIR}" || true
     make bundle "platform=${platform}" "VERSION=${newNightlyBundleVersion}"
     popd || true
@@ -128,10 +130,9 @@ updateNighltyBundle() {
     sed -e "s|containerImage:.*$|containerImage: ${containerImage}|" "${NEW_CSV}" > "${NEW_CSV}.new"
     mv "${NEW_CSV}.new" "${NEW_CSV}"
 
-    if [ -z "${NO_DATE_UPDATE}" ]; then
-      createdAt=$(date -u +%FT%TZ)
-      echo "[INFO]        - createdAt => ${createdAt}"
-      sed -e "s/createdAt:.*$/createdAt: \"${createdAt}\"/" "${NEW_CSV}" > "${NEW_CSV}.new"
+    if [ "${NO_DATE_UPDATE}" == "true" ]; then
+      echo "[INFO]        - createdAt => ${createdAtOld}"
+      sed -e "s/createdAt:.*$/createdAt: \"${createdAtOld}\"/" "${NEW_CSV}" > "${NEW_CSV}.new"
       mv "${NEW_CSV}.new" "${NEW_CSV}"
     fi
 
