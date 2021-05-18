@@ -29,6 +29,7 @@ import (
 	osruntime "runtime"
 
 	"fmt"
+
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
 	"github.com/eclipse-che/che-operator/controllers"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
