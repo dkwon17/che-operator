@@ -161,7 +161,7 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 	$(KUSTOMIZE) build config/crd | kubectl delete -f -
 
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	pushd config/manager || true && $(KUSTOMIZE) edit set image controller=${IMG} && popd || true
+	cd config/manager || true && $(KUSTOMIZE) edit set image controller=${IMG} && cd ../..
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
@@ -289,9 +289,9 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 
 	rm -rf bundle.Dockerfile
 
-	pushd $${BUNDLE_DIR}/manifests || true; 
+	cd $${BUNDLE_DIR}/manifests; 
 	mv $${GENERATED_CSV_NAME} $${DESIRED_CSV_NAME}
-	popd || true
+	cd ..
 	$(OPERATOR_SDK_BINARY) bundle validate ./$${BUNDLE_DIR}
 
 bundles:
