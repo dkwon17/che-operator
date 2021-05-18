@@ -110,8 +110,6 @@ updateNighltyBundle() {
 
     echo "[INFO] Updating OperatorHub bundle for platform '${platform}'"
 
-    pushd "${ROOT_PROJECT_DIR}" || true
-
     NIGHTLY_BUNDLE_PATH=$(getBundlePath "${platform}" "nightly")
     bundleCSVName="che-operator.clusterserviceversion.yaml"
     NEW_CSV=${NIGHTLY_BUNDLE_PATH}/manifests/${bundleCSVName}
@@ -120,9 +118,7 @@ updateNighltyBundle() {
 
     createdAtOld=$(yq -r ".metadata.annotations.createdAt" "${NEW_CSV}")
 
-    pushd "${ROOT_PROJECT_DIR}" || true
     make bundle "platform=${platform}" "VERSION=${newNightlyBundleVersion}"
-    popd || true
 
     containerImage=$(sed -n 's|^ *image: *\([^ ]*/che-operator:[^ ]*\) *|\1|p' ${NEW_CSV})
     echo "[INFO] Updating new package version fields:"
@@ -240,7 +236,7 @@ updateNighltyBundle() {
     yq -rY "." "${NEW_CSV}" > "${NEW_CSV}.old"
     mv "${NEW_CSV}.old" "${NEW_CSV}"
 
-    popd || true
+    # popd || true
   done
 }
 
