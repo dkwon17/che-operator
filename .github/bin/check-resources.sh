@@ -26,21 +26,11 @@ installOperatorSDK() {
   OPERATOR_SDK_BINARY=$(command -v operator-sdk) || true
   if [[ ! -x "${OPERATOR_SDK_BINARY}" ]]; then
     OPERATOR_SDK_TEMP_DIR="$(mktemp -q -d -t "OPERATOR_SDK_XXXXXX" 2>/dev/null || mktemp -q -d)"
-    pushd "${OPERATOR_SDK_TEMP_DIR}" || exit
-    echo "[INFO] Downloading 'operator-sdk' cli tool..."
 
-    ARCH=$(case $(uname -m) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(uname -m) ;; esac)
-    OS=$(uname | awk '{print tolower($0)}')
-
-    OPERATOR_SDK_VERSION=$(yq -r ".\"operator-sdk\"" "${ROOT_PROJECT_DIR}/REQUIREMENTS")
-    OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK_VERSION}
-    curl -sLo operator-sdk ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
-
+    pushd "${ROOT_PROJECT_DIR}" || true
+    make download-operator-sdk OP_SDK_DIR="${OPERATOR_SDK_TEMP_DIR}"
     export OPERATOR_SDK_BINARY="${OPERATOR_SDK_TEMP_DIR}/operator-sdk"
-    chmod +x "${OPERATOR_SDK_BINARY}"
-    echo "[INFO] Downloading completed!"
-    echo "[INFO] $(${OPERATOR_SDK_BINARY} version)"
-    popd || exit
+    popd || true
   fi
 }
 
@@ -51,8 +41,8 @@ updateResources() {
   source "${ROOT_PROJECT_DIR}/olm/update-resources.sh"
 }
 
-# check_che_types function check first if pkg/apis/org/v1/che_types.go file suffer modifications and
-# in case of modification should exist also modifications in deploy/crds/* folder.
+# check_che_types function check first if api/v1/checluster_types.go file suffer modifications and
+# in case of modification should exist also modifications in config/crd/bases/* folder.
 checkCRDs() {
     echo "[INFO] Checking CRDs"
 
@@ -78,8 +68,8 @@ checkNightlyOlmBundle() {
   # files to check
   local CSV_FILE_KUBERNETES="${ROOT_PROJECT_DIR}/bundle/nightly/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
   local CSV_FILE_OPENSHIFT="${ROOT_PROJECT_DIR}/bundle/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
-  local CRD_FILE_KUBERNETES="${ROOT_PROJECT_DIR}/bundle/nightly/eclipse-che-preview-kubernetes/manifests/org.eclipse.che_checlusters.yaml"
-  local CRD_FILE_OPENSHIFT="${ROOT_PROJECT_DIR}/bundle/nightly/eclipse-che-preview-openshift/manifests/org.eclipse.che_checlusters.yaml"
+  local CRD_FILE_KUBERNETES="${ROOT_PROJECT_DIR}/bundle/nightly/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml"
+  local CRD_FILE_OPENSHIFT="${ROOT_PROJECT_DIR}/bundle/nightly/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml"
 
   changedFiles=($(git diff --name-only))
   if [[ " ${changedFiles[*]} " =~ $CSV_FILE_OPENSHIFT ]] || [[ " ${changedFiles[*]} " =~ $CSV_FILE_OPENSHIFT ]] || \

@@ -86,6 +86,34 @@ help: ## Display this help.
 
 ##@ Development
 
+download-operator-sdk:
+	ARCH=$$(case "$$(uname -m)" in
+	x86_64) echo -n amd64 ;;
+	aarch64) echo -n arm64 ;;
+	*) echo -n $$(uname -m)
+	esac)
+	OS=$$(uname | awk '{print tolower($$0)}')
+
+	OPERATOR_SDK_VERSION=$$(sed -r 's|operator-sdk:\s*(.*)|\1|' REQUIREMENTS)
+
+	echo "[INFO] ARCH: $$ARCH, OS: $$OS. operator-sdk version: $$OPERATOR_SDK_VERSION"
+
+	if [ -z $(OP_SDK_DIR) ]; then
+		OP_SDK_PATH="operator-sdk"
+	else
+		OP_SDK_PATH="$(OP_SDK_DIR)/operator-sdk"
+	fi
+	
+	echo "[INFO] Downloading operator-sdk..."
+
+	OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/$${OPERATOR_SDK_VERSION}
+	curl -sSLo $${OP_SDK_PATH} $${OPERATOR_SDK_DL_URL}/operator-sdk_$${OS}_$${ARCH}
+
+	echo "[INFO] operator-sdk will downloaded to: $${OP_SDK_PATH}"
+	echo "[INFO] Set up executable permissions to binary."
+	chmod +x $${OP_SDK_PATH}
+	echo "[INFO] operator-sdk is ready."
+
 removeRequiredAttribute:
 	REQUIRED=false
 
@@ -261,7 +289,7 @@ set -e ;\
 TMP_DIR=$$(mktemp -d) ;\
 cd $$TMP_DIR ;\
 go mod init tmp ;\
-echo "Downloading $(2)" ;\
+echo "[INFO] Downloading $(2)" ;\
 GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
 rm -rf $$TMP_DIR ;\
 }
@@ -280,6 +308,8 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 	BUNDLE_DIR="bundle/$(DEFAULT_CHANNEL)/$${BUNDLE_PACKAGE}"
 	GENERATED_CSV_NAME=$${BUNDLE_PACKAGE}.clusterserviceversion.yaml
 	DESIRED_CSV_NAME=che-operator.clusterserviceversion.yaml
+	GENERATED_CRD_NAME=org.eclipse.che_checlusters.yaml
+	DESIRED_CRD_NAME=org_v1_che_crd.yaml
 
 	$(OPERATOR_SDK_BINARY) generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG) && cd ../..
@@ -294,6 +324,7 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 
 	cd $${BUNDLE_DIR}/manifests;
 	mv $${GENERATED_CSV_NAME} $${DESIRED_CSV_NAME}
+	mv $${GENERATED_CRD_NAME} $${DESIRED_CRD_NAME}
 	cd $(mkfile_dir)
 
 	$(OPERATOR_SDK_BINARY) bundle validate ./$${BUNDLE_DIR}
@@ -349,7 +380,13 @@ endif
 # https://github.com/operator-framework/community-operators/blob/7f1438c/docs/packaging-operator.md#updating-your-existing-operator
 .PHONY: catalog-build
 catalog-build: opm ## Build a catalog image.
-	$(OPM) index add --binary-image=quay.io/operator-framework/upstream-opm-builder:v1.15.1 --container-tool $(IMAGE_TOOL) --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
+	$(OPM) index add \
+	--build-tool $(IMAGE_TOOL) \
+	--bundles $(BUNDLE_IMGS) \
+	--tag $(CATALOG_IMG) \
+	--pull-tool $(IMAGE_TOOL) \
+	--binary-image=quay.io/operator-framework/upstream-opm-builder:v1.15.1 \
+	--mode semver $(FROM_INDEX_OPT)
 
 # Push the catalog image.
 .PHONY: catalog-push
