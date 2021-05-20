@@ -827,116 +827,6 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	return ctrl.Result{}, nil
 }
 
-func isTrustedBundleConfigMap(mgr ctrl.Manager, obj handler.MapObject) (bool, reconcile.Request) {
-	checlusters := &orgv1.CheClusterList{}
-	if err := mgr.GetClient().List(context.TODO(), checlusters, &client.ListOptions{}); err != nil {
-		return false, ctrl.Request{}
-	}
-
-	if len(checlusters.Items) != 1 {
-		return false, ctrl.Request{}
-	}
-
-	// Check if config map is the config map from CR
-	if checlusters.Items[0].Spec.Server.ServerTrustStoreConfigMapName != obj.Meta.GetName() {
-		// No, it is not form CR
-		// Check for labels
-
-		// Check for part of Che label
-		if value, exists := obj.Meta.GetLabels()[deploy.KubernetesPartOfLabelKey]; !exists || value != deploy.CheEclipseOrg {
-			// Labels do not match
-			return false, ctrl.Request{}
-		}
-
-		// Check for CA bundle label
-		if value, exists := obj.Meta.GetLabels()[deploy.CheCACertsConfigMapLabelKey]; !exists || value != deploy.CheCACertsConfigMapLabelValue {
-			// Labels do not match
-			return false, ctrl.Request{}
-		}
-	}
-
-	return true, ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Namespace: checlusters.Items[0].Namespace,
-			Name:      checlusters.Items[0].Name,
-		},
-	}
-}
-
-func (r *CheClusterReconciler) autoEnableOAuth(deployContext *deploy.DeployContext, request reconcile.Request, isOpenShift4 bool) (reconcile.Result, error) {
-	var message, reason string
-	oauth := false
-	cr := deployContext.CheCluster
-	if isOpenShift4 {
-		openshitOAuth, err := GetOpenshiftOAuth(deployContext.ClusterAPI.NonCachedClient)
-		if err != nil {
-			message = "Unable to get Openshift oAuth. Cause: " + err.Error()
-			logrus.Error(message)
-			reason = failedUnableToGetOAuth
-		} else {
-			if len(openshitOAuth.Spec.IdentityProviders) > 0 {
-				oauth = true
-			} else if util.IsInitialOpenShiftOAuthUserEnabled(cr) {
-				provisioned, err := r.userHandler.SyncOAuthInitialUser(openshitOAuth, deployContext)
-				if err != nil {
-					message = warningNoIdentityProvidersMessage + " Operator tried to create initial OpenShift OAuth user for HTPasswd identity provider, but failed. Cause: " + err.Error()
-					logrus.Error(message)
-					logrus.Info("To enable OpenShift OAuth, please add identity provider first: " + howToAddIdentityProviderLinkOS4)
-					reason = failedNoIdentityProviders
-					// Don't try to create initial user any more, che-operator shouldn't hang on this step.
-					cr.Spec.Auth.InitialOpenShiftOAuthUser = nil
-					if err := r.UpdateCheCRStatus(cr, "initialOpenShiftOAuthUser", ""); err != nil {
-						return reconcile.Result{}, err
-					}
-					oauth = false
-				} else {
-					if !provisioned {
-						return reconcile.Result{}, err
-					}
-					oauth = true
-					if deployContext.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret == "" {
-						deployContext.CheCluster.Status.OpenShiftOAuthUserCredentialsSecret = openShiftOAuthUserCredentialsSecret
-						if err := r.UpdateCheCRStatus(cr, "openShiftOAuthUserCredentialsSecret", openShiftOAuthUserCredentialsSecret); err != nil {
-							return reconcile.Result{}, err
-						}
-					}
-				}
-			}
-		}
-	} else { // Openshift 3
-		users := &userv1.UserList{}
-		listOptions := &client.ListOptions{}
-		if err := r.nonCachedClient.List(context.TODO(), users, listOptions); err != nil {
-			message = failedUnableToGetOpenshiftUsers + " Cause: " + err.Error()
-			logrus.Error(message)
-			reason = failedNoOpenshiftUser
-		} else {
-			oauth = len(users.Items) >= 1
-			if !oauth {
-				message = warningNoRealUsersMessage + " " + howToConfigureOAuthLinkOS3
-				logrus.Warn(message)
-				reason = failedNoOpenshiftUser
-			}
-		}
-	}
-
-	newOAuthValue := util.NewBoolPointer(oauth)
-	if !reflect.DeepEqual(newOAuthValue, cr.Spec.Auth.OpenShiftoAuth) {
-		cr.Spec.Auth.OpenShiftoAuth = newOAuthValue
-		if err := r.UpdateCheCRSpec(cr, "openShiftoAuth", strconv.FormatBool(oauth)); err != nil {
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Second * 1}, err
-		}
-	}
-
-	if message != "" && reason != "" {
-		if err := r.SetStatusDetails(cr, request, message, reason, ""); err != nil {
-			return reconcile.Result{}, err
-		}
-	}
-
-	return reconcile.Result{}, nil
-}
-
 // EvaluateCheServerVersion evaluate che version
 // based on Checluster information and image defaults from env variables
 func EvaluateCheServerVersion(cr *orgv1.CheCluster) string {
@@ -978,6 +868,43 @@ func getServerExposingServiceName(cr *orgv1.CheCluster) string {
 		return gateway.GatewayServiceName
 	}
 	return deploy.CheServiceName
+}
+
+// isTrustedBundleConfigMap detects whether given config map is the config map with additional CA certificates to be trusted by Che
+func isTrustedBundleConfigMap(mgr ctrl.Manager, obj handler.MapObject) (bool, reconcile.Request) {
+	checlusters := &orgv1.CheClusterList{}
+	if err := mgr.GetClient().List(context.TODO(), checlusters, &client.ListOptions{}); err != nil {
+		return false, ctrl.Request{}
+	}
+
+	if len(checlusters.Items) != 1 {
+		return false, ctrl.Request{}
+	}
+
+	// Check if config map is the config map from CR
+	if checlusters.Items[0].Spec.Server.ServerTrustStoreConfigMapName != obj.Meta.GetName() {
+		// No, it is not form CR
+		// Check for labels
+
+		// Check for part of Che label
+		if value, exists := obj.Meta.GetLabels()[deploy.KubernetesPartOfLabelKey]; !exists || value != deploy.CheEclipseOrg {
+			// Labels do not match
+			return false, ctrl.Request{}
+		}
+
+		// Check for CA bundle label
+		if value, exists := obj.Meta.GetLabels()[deploy.CheCACertsConfigMapLabelKey]; !exists || value != deploy.CheCACertsConfigMapLabelValue {
+			// Labels do not match
+			return false, ctrl.Request{}
+		}
+	}
+
+	return true, ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Namespace: checlusters.Items[0].Namespace,
+			Name:      checlusters.Items[0].Name,
+		},
+	}
 }
 
 // isEclipseCheSecret indicates if there is a secret with
