@@ -34,6 +34,7 @@ checkOperatorSDKVersion() {
     fi
   fi
 
+  echo "test 1"
   local operatorVersion=$("${OPERATOR_SDK_BINARY}" version)
   REQUIRED_OPERATOR_SDK=$(yq -r ".\"operator-sdk\"" "${ROOT_PROJECT_DIR}/REQUIREMENTS")
   [[ $operatorVersion =~ .*${REQUIRED_OPERATOR_SDK}.* ]] || { echo "operator-sdk ${REQUIRED_OPERATOR_SDK} is required"; exit 1; }
