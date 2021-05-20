@@ -30,7 +30,6 @@ installOperatorSDK() {
     pushd "${ROOT_PROJECT_DIR}" || true
     make download-operator-sdk OP_SDK_DIR="${OPERATOR_SDK_TEMP_DIR}"
     export OPERATOR_SDK_BINARY="${OPERATOR_SDK_TEMP_DIR}/operator-sdk"
-    popd || true
   fi
 }
 
