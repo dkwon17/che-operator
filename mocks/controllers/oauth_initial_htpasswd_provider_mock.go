@@ -2,7 +2,7 @@
 // Source: pkg/controller/che/oauth_initial_htpasswd_provider.go
 
 // Package mock_che is a generated GoMock package.
-package mock_che
+package mock_controllers
 
 import (
 	reflect "reflect"

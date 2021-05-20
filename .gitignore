@@ -116,8 +116,8 @@ build/
 olm/generated
 bundle/nightly/eclipse-che-preview-kubernetes/generated
 bundle/nightly/eclipse-che-preview-openshift/generated
-deploy/olm-catalog/stable/eclipse-che-preview-kubernetes/generated
-deploy/olm-catalog/stable/eclipse-che-preview-openshift/generated
+bundle/nightly/stable/eclipse-che-preview-kubernetes/generated
+bundle/nightly/stable/eclipse-che-preview-openshift/generated
 
 # Kubernetes Generated files - skip generated files, except for vendored files
 # !vendor/**/zz_generated.*
