@@ -38,8 +38,8 @@ func TestSyncAdditionalCACertsConfigMapToCluster(t *testing.T) {
 	}
 	cert2 := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            "cert2",
-			Namespace:       "eclipse-che",
+			Name:      "cert2",
+			Namespace: "eclipse-che",
 			// Go client set up resource version 1 itself on object creation.
 			// ResourceVersion: "1",
 			Labels: map[string]string{

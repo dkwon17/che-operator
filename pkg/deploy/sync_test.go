@@ -53,8 +53,8 @@ var (
 		Data: map[string][]byte{"x": []byte("y")},
 	}
 	// testObjMeta = &corev1.Secret{}
-	testKey     = client.ObjectKey{Name: "test-secret", Namespace: "eclipse-che"}
-	diffOpts    = cmp.Options{
+	testKey  = client.ObjectKey{Name: "test-secret", Namespace: "eclipse-che"}
+	diffOpts = cmp.Options{
 		cmpopts.IgnoreFields(corev1.Secret{}, "TypeMeta", "ObjectMeta"),
 	}
 )

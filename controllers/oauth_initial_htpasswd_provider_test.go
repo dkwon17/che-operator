@@ -17,8 +17,8 @@ import (
 	"os"
 	"testing"
 
-	util_mocks "github.com/eclipse-che/che-operator/mocks/pkg/util"
 	orgv1 "github.com/eclipse-che/che-operator/api/v1"
+	util_mocks "github.com/eclipse-che/che-operator/mocks/pkg/util"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/eclipse-che/che-operator/pkg/util"
 	"github.com/golang/mock/gomock"

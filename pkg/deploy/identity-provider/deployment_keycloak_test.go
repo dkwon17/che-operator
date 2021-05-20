@@ -56,7 +56,7 @@ func TestDeployment(t *testing.T) {
 			cpuRequest:    deploy.DefaultIdentityProviderCpuRequest,
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "che-cluster",
+					Name:      "che-cluster",
 					Namespace: "eclipse-che",
 				},
 			},
@@ -70,7 +70,7 @@ func TestDeployment(t *testing.T) {
 			memoryRequest: "150Mi",
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "che-cluster",
+					Name:      "che-cluster",
 					Namespace: "eclipse-che",
 				},
 				Spec: orgv1.CheClusterSpec{
@@ -163,7 +163,7 @@ func TestMountGitHubOAuthEnvVar(t *testing.T) {
 			},
 			cheCluster: &orgv1.CheCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "che-cluster",
+					Name:      "che-cluster",
 					Namespace: "eclipse-che",
 				},
 			},
@@ -260,8 +260,8 @@ func TestSyncKeycloakDeploymentToCluster(t *testing.T) {
 	// create certs configmap
 	err = cli.Create(context.TODO(), &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            "ca-certs-merged",
-			Namespace:       "eclipse-che",
+			Name:      "ca-certs-merged",
+			Namespace: "eclipse-che",
 			// Go client set up resource version 1 itself on object creation.
 			// ResourceVersion: "1",
 		},
@@ -273,8 +273,8 @@ func TestSyncKeycloakDeploymentToCluster(t *testing.T) {
 	// create self-signed-certificate secret
 	err = cli.Create(context.TODO(), &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            "self-signed-certificate",
-			Namespace:       "eclipse-che",
+			Name:      "self-signed-certificate",
+			Namespace: "eclipse-che",
 			// Go client set up resource version 1 itself on object creation.
 			// ResourceVersion: "1",
 		},

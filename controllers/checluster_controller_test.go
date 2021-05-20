@@ -60,11 +60,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	configv1 "github.com/openshift/api/config/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/yaml"
-	configv1 "github.com/openshift/api/config/v1"
 
 	"testing"
 )
@@ -175,13 +175,13 @@ var (
 	oAuthClient                  = &oauth.OAuthClient{}
 	oAuthWithNoIdentityProviders = &oauth_config.OAuth{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster",
+			Name: "cluster",
 			// Namespace: namespace,
 		},
 	}
 	oAuthWithIdentityProvider = &oauth_config.OAuth{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster",
+			Name: "cluster",
 			// Namespace: namespace,
 		},
 		Spec: oauth_config.OAuthSpec{
@@ -250,7 +250,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				&userv1.UserList{},
 				&oauth.OAuthClient{},
 			},
-			isOpenshift3:  true,
+			isOpenshift3:      true,
 			initialOAuthValue: util.NewBoolPointer(true),
 			oAuthExpected:     util.NewBoolPointer(true),
 		},
@@ -397,7 +397,7 @@ func TestCaseAutoDetectOAuth(t *testing.T) {
 				Scheme:          scheme,
 				tests:           true,
 				userHandler:     userHandlerMock,
-				Log: ctrl.Log.WithName("controllers").WithName("CheCluster"),
+				Log:             ctrl.Log.WithName("controllers").WithName("CheCluster"),
 			}
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
@@ -494,7 +494,7 @@ func TestEnsureServerExposureStrategy(t *testing.T) {
 				discoveryClient: fakeDiscovery,
 				Scheme:          scheme,
 				tests:           true,
-				Log: ctrl.Log.WithName("controllers").WithName("CheCluster"),
+				Log:             ctrl.Log.WithName("controllers").WithName("CheCluster"),
 			}
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
@@ -713,7 +713,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 				discoveryClient: fakeDiscovery,
 				Scheme:          scheme.Scheme,
 				tests:           true,
-				Log: ctrl.Log.WithName("controllers").WithName("CheCluster"),
+				Log:             ctrl.Log.WithName("controllers").WithName("CheCluster"),
 			}
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
@@ -843,7 +843,7 @@ func TestCheController(t *testing.T) {
 	if err := cl.Get(context.TODO(), types.NamespacedName{Name: deploy.DevfileRegistryName, Namespace: cheCR.Namespace}, devfilecm); err != nil {
 		t.Errorf("ConfigMap %s not found: %s", devfilecm.Name, err)
 	}
-	
+
 	// get CR
 	if err := cl.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, cheCR); err != nil {
 		t.Errorf("CR not found")
@@ -1178,7 +1178,7 @@ func TestShouldDelegatePermissionsForCheWorkspaces(t *testing.T) {
 				Scheme:            scheme,
 				permissionChecker: m,
 				tests:             true,
-				Log: ctrl.Log.WithName("controllers").WithName("CheCluster"),
+				Log:               ctrl.Log.WithName("controllers").WithName("CheCluster"),
 			}
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
