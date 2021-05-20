@@ -38,6 +38,7 @@ updateResources() {
   export NO_DATE_UPDATE="true"
   export NO_INCREMENT="true"
 
+  echo "[INFO] Update resources with skipping version incrementation and timestamp..."
   source "${ROOT_PROJECT_DIR}/olm/update-resources.sh"
 }
 
