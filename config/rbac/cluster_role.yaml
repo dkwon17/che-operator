@@ -275,6 +275,7 @@ rules:
     verbs:
       - get
       - create
+      - update
   - apiGroups:
       - operators.coreos.com
     resources:

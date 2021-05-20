@@ -36,6 +36,7 @@ initDefaults() {
   export CHE_EXPOSURE_STRATEGY="multi-host"
   export OPENSHIFT_NIGHTLY_CSV_FILE="${OPERATOR_REPO}/bundle/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
   export DEV_WORKSPACE_CONTROLLER_VERSION="main"
+  export DEV_WORKSPACE_ENABLE="false"
 
   # turn off telemetry
   mkdir -p ${HOME}/.config/chectl
@@ -342,9 +343,9 @@ patchEclipseCheOperatorSubscription() {
 applyOlmCR() {
   echo "Creating Custom Resource"
 
-  CRs=$(yq -r '.metadata.annotations["alm-examples"]' "${OPENSHIFT_NIGHTLY_CSV_FILE}")
-  CR=$(echo "$CRs" | yq -r ".[0]")
+  CR=$(yq -r '.metadata.annotations["alm-examples"]' "${OPENSHIFT_NIGHTLY_CSV_FILE}" | yq -r ".[0]")
   CR=$(echo "$CR" | yq -r ".spec.server.serverExposureStrategy = \"${CHE_EXPOSURE_STRATEGY}\"")
+  CR=$(echo "$CR" | yq -r ".spec.devWorkspace.enable = ${DEV_WORKSPACE_ENABLE:-false}")
 
   echo -e "$CR"
   echo "$CR" | oc apply -n "${NAMESPACE}" -f -
@@ -393,10 +394,6 @@ EOL
   oc get checluster eclipse-che -n eclipse-che -o yaml
 }
 
-deployDevWorkspaceController() {
-  oc patch checluster eclipse-che -n ${NAMESPACE}  --type=merge -p '{"spec":{"devWorkspace": {"enable": true}}}'
-}
-
 waitDevWorkspaceControllerStarted() {
   n=0
   while [ $n -le 24 ]
@@ -419,7 +416,15 @@ waitDevWorkspaceControllerStarted() {
 }
 
 createWorkspaceDevWorkspaceController () {
-  oc apply -f https://raw.githubusercontent.com/devfile/devworkspace-operator/main/samples/flattened_theia-next.yaml -n ${NAMESPACE}
+  echo -e "[INFO] Waiting for webhook-server to be running"
+  CURRENT_TIME=$(date +%s)
+  ENDTIME=$(($CURRENT_TIME + 180))
+  while [ $(date +%s) -lt $ENDTIME ]; do
+      if oc apply -f https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/samples/flattened_theia-nodejs.yaml -n ${NAMESPACE}; then
+          break
+      fi
+      sleep 10
+  done
 }
 
 waitWorkspaceStartedDevWorkspaceController() {
