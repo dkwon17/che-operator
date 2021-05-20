@@ -38,6 +38,7 @@ import (
 
 var (
 	DevWorkspaceNamespace      = "devworkspace-controller"
+	DevWorkspaceCheNamespace   = "devworkspace-che"
 	DevWorkspaceWebhookName    = "controller.devfile.io"
 	DevWorkspaceServiceAccount = "devworkspace-controller-serviceaccount"
 	DevWorkspaceDeploymentName = "devworkspace-controller-manager"
@@ -66,6 +67,19 @@ var (
 	DevWorkspaceCRDFile                       = DevWorkspaceTemplates + "/devworkspaces.workspace.devfile.io.CustomResourceDefinition.yaml"
 	DevWorkspaceConfigMapFile                 = DevWorkspaceTemplates + "/devworkspace-controller-configmap.ConfigMap.yaml"
 	DevWorkspaceDeploymentFile                = DevWorkspaceTemplates + "/devworkspace-controller-manager.Deployment.yaml"
+
+	DevWorkspaceCheServiceAccountFile           = DevWorkspaceCheTemplates + "/devworkspace-che-serviceaccount.ServiceAccount.yaml"
+	DevWorkspaceCheRoleFile                     = DevWorkspaceCheTemplates + "/devworkspace-che-leader-election-role.Role.yaml"
+	DevWorkspaceCheClusterRoleFile              = DevWorkspaceCheTemplates + "/devworkspace-che-role.ClusterRole.yaml"
+	DevWorkspaceCheProxyClusterRoleFile         = DevWorkspaceCheTemplates + "/devworkspace-che-proxy-role.ClusterRole.yaml"
+	DevWorkspaceCheMetricsReaderClusterRoleFile = DevWorkspaceCheTemplates + "/devworkspace-che-metrics-reader.ClusterRole.yaml"
+	DevWorkspaceCheRoleBindingFile              = DevWorkspaceCheTemplates + "/devworkspace-che-leader-election-rolebinding.RoleBinding.yaml"
+	DevWorkspaceCheClusterRoleBindingFile       = DevWorkspaceCheTemplates + "/devworkspace-che-rolebinding.ClusterRoleBinding.yaml"
+	DevWorkspaceCheProxyClusterRoleBindingFile  = DevWorkspaceCheTemplates + "/devworkspace-che-proxy-rolebinding.ClusterRoleBinding.yaml"
+	DevWorkspaceCheManagersCRDFile              = DevWorkspaceCheTemplates + "/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml"
+	DevWorkspaceCheConfigMapFile                = DevWorkspaceCheTemplates + "/devworkspace-che-configmap.ConfigMap.yaml"
+	DevWorkspaceCheDeploymentFile               = DevWorkspaceCheTemplates + "/devworkspace-che-manager.Deployment.yaml"
+	DevWorkspaceCheMetricsServiceFile           = DevWorkspaceCheTemplates + "/devworkspace-che-controller-manager-metrics-service.Service.yaml"
 
 	WebTerminalOperatorSubscriptionName = "web-terminal"
 	WebTerminalOperatorNamespace        = "openshift-operators"
@@ -98,6 +112,23 @@ var (
 	}
 
 	syncDwCheItems = []func(*deploy.DeployContext) (bool, error){
+		// deleting unused objects
+		deleteDwCheDeployment,
+		deleteDwCheMetricsService,
+		deleteDwCheServiceAccount,
+		deleteDwCheClusterRoleBinding,
+		deleteDwCheClusterRole,
+		deleteDwCheProxyClusterRoleBinding,
+		deleteDwCheProxyClusterRole,
+		deleteDwCheMetricsClusterRole,
+		deleteDwCheLeaderRoleBinding,
+		deleteDwCheLeaderRole,
+
+		// migrating existed objects
+		migrateDwCheConfigMap,
+		migrateDwCheCR,
+
+		// syncing new objects
 		syncDwCheCR,
 		syncDwCheMetricsService,
 	}
@@ -208,39 +239,39 @@ func syncDwRoleBinding(deployContext *deploy.DeployContext) (bool, error) {
 }
 
 func syncDwClusterRoleBinding(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceClusterRoleBindingFile, &rbacv1.ClusterRoleBinding{}, DevWorkspaceNamespace)
+	return readAndSyncObject(deployContext, DevWorkspaceClusterRoleBindingFile, &rbacv1.ClusterRoleBinding{}, "")
 }
 
 func syncDwProxyClusterRoleBinding(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceProxyClusterRoleBindingFile, &rbacv1.ClusterRoleBinding{}, DevWorkspaceNamespace)
+	return readAndSyncObject(deployContext, DevWorkspaceProxyClusterRoleBindingFile, &rbacv1.ClusterRoleBinding{}, "")
 }
 
 func syncDwClusterRole(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceClusterRoleFile, &rbacv1.ClusterRole{}, DevWorkspaceNamespace)
+	return readAndSyncObject(deployContext, DevWorkspaceClusterRoleFile, &rbacv1.ClusterRole{}, "")
 }
 
 func syncDwProxyClusterRole(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceProxyClusterRoleFile, &rbacv1.ClusterRole{}, DevWorkspaceNamespace)
+	return readAndSyncObject(deployContext, DevWorkspaceProxyClusterRoleFile, &rbacv1.ClusterRole{}, "")
 }
 
 func syncDwViewWorkspacesClusterRole(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceViewWorkspacesClusterRoleFile, &rbacv1.ClusterRole{}, DevWorkspaceNamespace)
+	return readAndSyncObject(deployContext, DevWorkspaceViewWorkspacesClusterRoleFile, &rbacv1.ClusterRole{}, "")
 }
 
 func syncDwEditWorkspacesClusterRole(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceEditWorkspacesClusterRoleFile, &rbacv1.ClusterRole{}, DevWorkspaceNamespace)
+	return readAndSyncObject(deployContext, DevWorkspaceEditWorkspacesClusterRoleFile, &rbacv1.ClusterRole{}, "")
 }
 
 func syncDwWorkspaceRoutingCRD(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceWorkspaceRoutingCRDFile, &apiextensionsv1.CustomResourceDefinition{}, DevWorkspaceNamespace)
+	return readAndSyncObject(deployContext, DevWorkspaceWorkspaceRoutingCRDFile, &apiextensionsv1.CustomResourceDefinition{}, "")
 }
 
 func syncDwTemplatesCRD(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceTemplatesCRDFile, &apiextensionsv1.CustomResourceDefinition{}, DevWorkspaceNamespace)
+	return readAndSyncObject(deployContext, DevWorkspaceTemplatesCRDFile, &apiextensionsv1.CustomResourceDefinition{}, "")
 }
 
 func syncDwCRD(deployContext *deploy.DeployContext) (bool, error) {
-	return readAndSyncObject(deployContext, DevWorkspaceCRDFile, &apiextensionsv1.CustomResourceDefinition{}, DevWorkspaceNamespace)
+	return readAndSyncObject(deployContext, DevWorkspaceCRDFile, &apiextensionsv1.CustomResourceDefinition{}, "")
 }
 
 func syncDwConfigMap(deployContext *deploy.DeployContext) (bool, error) {
@@ -274,20 +305,118 @@ func syncDwDeployment(deployContext *deploy.DeployContext) (bool, error) {
 	return syncObject(deployContext, obj2sync, DevWorkspaceNamespace)
 }
 
-func syncDwCheMetricsService(deployContext *deploy.DeployContext) (bool, error) {
-	spec := deploy.GetServiceSpec(
-		deployContext,
-		"devworkspace-che-controller-manager-metrics-service",
-		[]string{"https"},
-		[]int32{8443},
-		"che-operator")
+func deleteDwCheServiceAccount(deployContext *deploy.DeployContext) (bool, error) {
+	return readAndDeleteObject(deployContext, DevWorkspaceCheServiceAccountFile, &corev1.ServiceAccount{}, DevWorkspaceCheNamespace)
+}
 
-	spec.Spec.Selector = map[string]string{
-		deploy.KubernetesNameLabelKey:      deploy.DefaultCheFlavor(deployContext.CheCluster),
-		deploy.KubernetesComponentLabelKey: "che-operator",
+func deleteDwCheClusterRole(deployContext *deploy.DeployContext) (bool, error) {
+	return readAndDeleteObject(deployContext, DevWorkspaceCheClusterRoleFile, &rbacv1.ClusterRole{}, "")
+}
+
+func deleteDwCheProxyClusterRole(deployContext *deploy.DeployContext) (bool, error) {
+	return readAndDeleteObject(deployContext, DevWorkspaceCheProxyClusterRoleFile, &rbacv1.ClusterRole{}, "")
+}
+
+func deleteDwCheMetricsClusterRole(deployContext *deploy.DeployContext) (bool, error) {
+	return readAndDeleteObject(deployContext, DevWorkspaceCheMetricsReaderClusterRoleFile, &rbacv1.ClusterRole{}, "")
+}
+
+func deleteDwCheLeaderRole(deployContext *deploy.DeployContext) (bool, error) {
+	return readAndDeleteObject(deployContext, DevWorkspaceCheRoleFile, &rbacv1.Role{}, DevWorkspaceCheNamespace)
+}
+
+func deleteDwCheLeaderRoleBinding(deployContext *deploy.DeployContext) (bool, error) {
+	return readAndDeleteObject(deployContext, DevWorkspaceCheRoleBindingFile, &rbacv1.RoleBinding{}, DevWorkspaceCheNamespace)
+}
+
+func deleteDwCheProxyClusterRoleBinding(deployContext *deploy.DeployContext) (bool, error) {
+	return readAndDeleteObject(deployContext, DevWorkspaceCheProxyClusterRoleBindingFile, &rbacv1.ClusterRoleBinding{}, "")
+}
+
+func deleteDwCheClusterRoleBinding(deployContext *deploy.DeployContext) (bool, error) {
+	return readAndDeleteObject(deployContext, DevWorkspaceCheClusterRoleBindingFile, &rbacv1.ClusterRoleBinding{}, "")
+}
+
+func deleteDwCheMetricsService(deployContext *deploy.DeployContext) (bool, error) {
+	return readAndDeleteObject(deployContext, DevWorkspaceCheMetricsServiceFile, &corev1.Service{}, "")
+}
+
+func migrateDwCheConfigMap(deployContext *deploy.DeployContext) (bool, error) {
+	obj2sync, err := readK8SObject(DevWorkspaceCheConfigMapFile, &corev1.ConfigMap{})
+	if err != nil {
+		return false, err
+	}
+	obj2sync.obj.SetNamespace(DevWorkspaceCheNamespace)
+
+	actual := &corev1.ConfigMap{}
+	actualObjKey := types.NamespacedName{Name: obj2sync.obj.GetName(), Namespace: obj2sync.obj.GetNamespace()}
+	exists, err := deploy.Get(deployContext, actualObjKey, actual)
+	if !exists {
+		return err == nil, err
 	}
 
-	return deploy.Sync(deployContext, spec, deploy.DefaultServiceDiffOpts)
+	runtimeObject, ok := obj2sync.obj.(runtime.Object)
+	if !ok {
+		return false, fmt.Errorf("object %T is not a runtime.Object. Cannot sync it", runtimeObject)
+	}
+	newObj := runtimeObject.DeepCopyObject()
+	newObj.(metav1.Object).SetNamespace(deployContext.CheCluster.Namespace)
+	err = deployContext.ClusterAPI.Client.Create(context.TODO(), newObj)
+	if err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			logrus.Warnf("%s config map already exists in %s namespace.", obj2sync.obj.GetName(), deployContext.CheCluster.Namespace)
+		} else {
+			return false, err
+		}
+	}
+
+	done, err := deploy.Delete(deployContext, actualObjKey, &corev1.ConfigMap{})
+	if !done {
+		return false, err
+	}
+
+	return true, nil
+}
+
+// migrates DWChe CR from `devworkspace-che` namespace
+func migrateDwCheCR(deployContext *deploy.DeployContext) (bool, error) {
+	actual := &unstructured.Unstructured{}
+	actual.SetGroupVersionKind(schema.GroupVersionKind{Group: "che.eclipse.org", Version: "v1alpha1", Kind: "CheManager"})
+	err := deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-che", Namespace: DevWorkspaceCheNamespace}, actual)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return true, nil
+		} else {
+			return false, err
+		}
+	}
+
+	newObj := &unstructured.Unstructured{}
+	newObj.SetUnstructuredContent(actual.DeepCopy().UnstructuredContent())
+	newObj.SetNamespace(deployContext.CheCluster.Namespace)
+	err = deployContext.ClusterAPI.Client.Create(context.TODO(), newObj)
+	if err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			logrus.Warnf("CheManager custom resources already exists in %s namespace.", deployContext.CheCluster.Namespace)
+		} else {
+			return false, err
+		}
+	}
+
+	err = deployContext.ClusterAPI.Client.Delete(context.TODO(), actual)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func deleteDwCheDeployment(deployContext *deploy.DeployContext) (bool, error) {
+	return readAndDeleteObject(deployContext, DevWorkspaceCheDeploymentFile, &corev1.Service{}, DevWorkspaceCheNamespace)
+}
+
+func syncDwCheMetricsService(deployContext *deploy.DeployContext) (bool, error) {
+	return readAndSyncObject(deployContext, DevWorkspaceCheMetricsServiceFile, &corev1.Service{}, deployContext.CheCluster.Namespace)
 }
 
 func syncDwCheCR(deployContext *deploy.DeployContext) (bool, error) {
@@ -381,6 +510,20 @@ func syncObject(deployContext *deploy.DeployContext, obj2sync *Object2Sync, name
 	}
 
 	return true, nil
+}
+
+func readAndDeleteObject(deployContext *deploy.DeployContext, yamlFile string, obj interface{}, namespace string) (bool, error) {
+	obj2sync, err := readK8SObject(yamlFile, obj)
+	if err != nil {
+		return false, err
+	}
+	return deleteObject(deployContext, obj2sync, namespace)
+}
+
+func deleteObject(deployContext *deploy.DeployContext, obj2sync *Object2Sync, namespace string) (bool, error) {
+	obj2sync.obj.SetNamespace(namespace)
+	key := types.NamespacedName{Name: obj2sync.obj.GetName(), Namespace: obj2sync.obj.GetNamespace()}
+	return deploy.Delete(deployContext, key, obj2sync.obj.(metav1.Object))
 }
 
 func setAnnotations(deployContext *deploy.DeployContext, obj2sync *Object2Sync) {

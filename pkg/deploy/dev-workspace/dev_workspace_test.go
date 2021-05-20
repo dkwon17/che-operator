@@ -20,6 +20,7 @@ import (
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -461,5 +462,95 @@ func TestShouldNotSyncObjectIfHashIsEqual(t *testing.T) {
 	}
 	if actual.Data["a"] != "b" {
 		t.Fatalf("Object is not supposed to be updated.")
+	}
+}
+
+func TestMigrateDwCheCR(t *testing.T) {
+	deployContext := deploy.GetTestDeployContext(nil, []runtime.Object{})
+
+	// create object in `devworkspace-che` namespace
+	actual := &unstructured.Unstructured{}
+	actual.SetUnstructuredContent(map[string]interface{}{
+		"spec": map[string]interface{}{
+			"gatewayHost": "CHE_DOMAIN",
+		},
+	})
+	actual.SetGroupVersionKind(schema.GroupVersionKind{Group: "che.eclipse.org", Version: "v1alpha1", Kind: "CheManager"})
+	actual.SetName("devworkspace-che")
+	actual.SetNamespace(DevWorkspaceCheNamespace)
+
+	err := deployContext.ClusterAPI.Client.Create(context.TODO(), actual)
+	if err != nil {
+		t.Fatalf("Failed to create object: %v", err)
+	}
+
+	// migrate to `eclipse-che` namespace
+	done, err := migrateDwCheCR(deployContext)
+	if err != nil {
+		t.Fatalf("Failed to migrate DWChe CR: %v", err)
+	}
+	if !done {
+		t.Fatalf("Not reconciled.")
+	}
+
+	// check existence in `eclipse-che` namespace
+	newObj := &unstructured.Unstructured{}
+	newObj.SetGroupVersionKind(schema.GroupVersionKind{Group: "che.eclipse.org", Version: "v1alpha1", Kind: "CheManager"})
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-che", Namespace: "eclipse-che"}, newObj)
+	if err != nil {
+		t.Fatalf("Failed to get object: %v", err)
+	}
+	if newObj.UnstructuredContent()["spec"].(map[string]interface{})["gatewayHost"] != "CHE_DOMAIN" {
+		t.Fatal("Failed to migrate DWChe CR")
+	}
+
+	// check absence in `devworkspace-che` namespace
+	oldObj := &unstructured.Unstructured{}
+	oldObj.SetGroupVersionKind(schema.GroupVersionKind{Group: "che.eclipse.org", Version: "v1alpha1", Kind: "CheManager"})
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-che", Namespace: DevWorkspaceCheNamespace}, oldObj)
+	if err == nil {
+		t.Fatalf("Object must be absent.")
+	} else if !errors.IsNotFound(err) {
+		t.Fatalf("Failed to get object: %v", err)
+	}
+}
+
+func TestMigrateDwCheConfigMap(t *testing.T) {
+	actual := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "devworkspace-che-configmap",
+			Namespace: DevWorkspaceCheNamespace,
+		},
+		Data: map[string]string{"a": "b"},
+	}
+	cachedObj[DevWorkspaceCheConfigMapFile] = &Object2Sync{obj: actual, hash256: "abcd"}
+	deployContext := deploy.GetTestDeployContext(nil, []runtime.Object{actual})
+
+	// migrate configmap
+	done, err := migrateDwCheConfigMap(deployContext)
+	if err != nil {
+		t.Fatalf("Failed to migrate DWChe CR: %v", err)
+	}
+	if !done {
+		t.Fatalf("Not reconciled.")
+	}
+
+	// check existence in `eclipse-che` namespace
+	newObj := &corev1.ConfigMap{}
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-che-configmap", Namespace: "eclipse-che"}, newObj)
+	if err != nil {
+		t.Fatalf("Failed to get object: %v", err)
+	}
+	if newObj.Data["a"] != "b" {
+		t.Fatal("Failed to migrate DWChe ConfigMap")
+	}
+
+	// check absence in `devworkspace-che` namespace
+	oldObj := &corev1.ConfigMap{}
+	err = deployContext.ClusterAPI.Client.Get(context.TODO(), client.ObjectKey{Name: "devworkspace-che-configmap", Namespace: DevWorkspaceCheNamespace}, oldObj)
+	if err == nil {
+		t.Fatalf("Object must be absent.")
+	} else if !errors.IsNotFound(err) {
+		t.Fatalf("Failed to get object: %v", err)
 	}
 }
