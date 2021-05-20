@@ -713,7 +713,7 @@ func (r *CheClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	done, err = d.SyncAll()
 	if !done {
 		if err != nil {
-			logrus.Errorf("Error provisioning '%s' to cluster: %v", dashboard.DashboardComponent, err)
+			logrus.Errorf("Error provisioning '%s' to cluster: %v", d.GetComponentName(), err)
 		}
 		return ctrl.Result{}, err
 	}
