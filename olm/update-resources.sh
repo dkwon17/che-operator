@@ -76,7 +76,7 @@ detectImages() {
   skopeo inspect docker://$UBI8_MINIMAL_IMAGE > /dev/null
 
   echo "[INFO] Check update broker and jwt proxy images..."
-  wget https://github.com/eclipse-che/che-server/blob/main/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
+  wget https://raw.githubusercontent.com/eclipse-che/che-server/main/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
   PLUGIN_BROKER_METADATA_IMAGE=$(cat /tmp/che.properties| grep "che.workspace.plugin_broker.metadata.image" | cut -d = -f2)
   PLUGIN_BROKER_ARTIFACTS_IMAGE=$(cat /tmp/che.properties | grep "che.workspace.plugin_broker.artifacts.image" | cut -d = -f2)
   JWT_PROXY_IMAGE=$(cat /tmp/che.properties | grep "che.server.secure_exposer.jwtproxy.image" | cut -d = -f2)
