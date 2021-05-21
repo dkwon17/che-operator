@@ -18,10 +18,12 @@ if [ -z "${ROOT_PROJECT_DIR}" ]; then
   ROOT_PROJECT_DIR=$(dirname "$(dirname "${BASE_DIR}")")
 fi
 
-CSV_KUBERNETES_NEW="deploy/olm-catalog/nightly/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
+CSV_KUBERNETES_NEW="bundle/nightly/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
+# todo fix link after merge...
 CSV_KUBERNETES_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator/main/deploy/olm-catalog/nightly/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml
 
-CSV_OPENSHIFT_NEW="deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
+CSV_OPENSHIFT_NEW="bundle/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
+# todo fix link after merge...
 CSV_OPENSHIFT_CURRENT=https://raw.githubusercontent.com/eclipse-che/che-operator/main/deploy/olm-catalog/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml
 
 checkNightlyBundleVersions() {
