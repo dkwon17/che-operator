@@ -46,7 +46,6 @@ initDefaults
 installOperatorMarketPlace
 initLatestTemplates
 initStableTemplates "kubernetes" "stable"
-prepareTemplates
 patchTemplates
 buildCheOperatorImage
 copyCheOperatorImageToMinikube

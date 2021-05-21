@@ -41,7 +41,6 @@ initDefaults
 installYq
 initLatestTemplates
 initStableTemplates "openshift" "stable"
-prepareTemplates
 patchTemplates
 if [[ -z "$GITHUB_ACTIONS" ]]; then
   buildCheOperatorImage

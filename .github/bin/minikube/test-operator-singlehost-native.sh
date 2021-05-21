@@ -40,7 +40,6 @@ runTest() {
 
 initDefaults
 initLatestTemplates
-prepareTemplates
 patchTemplates
 buildCheOperatorImage
 copyCheOperatorImageToMinikube

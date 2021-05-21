@@ -35,7 +35,6 @@ runTest() {
 initDefaults
 installYq
 initLatestTemplates
-prepareTemplates
 patchTemplates
 if [[ -z "$GITHUB_ACTIONS" ]]; then
   buildCheOperatorImage

@@ -54,7 +54,7 @@ curl -L https://api.github.com/repos/devfile/devworkspace-operator/zipball/${DEV
   mkdir -p /tmp/devworkspace-operator/templates/ && \
   mv /tmp/devfile-devworkspace-operator-*/deploy ${TEMPLATES}/devworkspace
 
-  cp -rf ${OPERATOR_REPO}/config/* "${TEMPLATES}/che-operator"
+  prepareTemplates "${OPERATOR_REPO}" "${TEMPLATES}/che-operator"
 }
 
 getLatestsStableVersions() {
@@ -93,7 +93,7 @@ initStableTemplates() {
   # todo: set up final version before merge pr...
   compareResult=$(pysemver compare "${LAST_PACKAGE_VERSION}" "7.30.2")
   if [ "${compareResult}" == "1" ]; then
-      cp -rf ${lastOperatorPath}/config/* "${LAST_OPERATOR_TEMPLATE}/che-operator"
+      prepareTemplates "${lastOperatorPath}" "${LAST_OPERATOR_TEMPLATE}/che-operator"
     else
       cp -rf ${lastOperatorPath}/deploy/* "${LAST_OPERATOR_TEMPLATE}/che-operator"
   fi
@@ -160,12 +160,33 @@ copyCheOperatorImageToMinishift() {
 
 # Prepare chectl che-operator templates
 prepareTemplates() {
-  OPERATOR_TEMPLATES="${TEMPLATES}"/che-operator
-  mkdir -p "${OPERATOR_TEMPLATES}"
-  cp -rf config/rbac/* "${OPERATOR_TEMPLATES}"/
-  cp -rf config/manager/manager.yaml "${OPERATOR_TEMPLATES}"/operator.yaml
-  cp -rf config/crd/bases/ "${OPERATOR_TEMPLATES}"/crds
-  cp -f config/samples/org.eclipse.che_v1_checluster.yaml "${OPERATOR_TEMPLATES}"/crds/org_v1_che_cr.yaml
+  if [ -n "${1}" ]; then
+    SRC_TEMPLATES="${1}"
+  else
+    echo "[ERROR] Specify templates original location"
+    exit 1
+  fi
+
+  if [ -n "${2}" ]; then
+    TARGET_TEMPLATES="${2}"
+  else
+    echo "[ERROR] Specify templates target location"
+    exit 1
+  fi
+
+  mkdir -p "${SRC_TEMPLATES}"
+
+  cp -f "${SRC_TEMPLATES}/config/manager/manager.yaml" "${TARGET_TEMPLATES}/operator.yaml"
+
+  cp -rf "${SRC_TEMPLATES}/config/crd/bases/" "${TARGET_TEMPLATES}/crds/"
+
+  cp -f "${SRC_TEMPLATES}/config/rbac/role.yaml" "${TARGET_TEMPLATES}/"
+  cp -f "${SRC_TEMPLATES}/config/rbac/role_binding.yaml" "${TARGET_TEMPLATES}/"
+  cp -f "${SRC_TEMPLATES}/config/rbac/cluster_role.yaml" "${TARGET_TEMPLATES}/"
+  cp -f "${SRC_TEMPLATES}/config/rbac/cluster_rolebinding.yaml" "${TARGET_TEMPLATES}/"
+  cp -f "${SRC_TEMPLATES}/config/rbac/service_account.yaml" "${TARGET_TEMPLATES}/"
+
+  cp -f "${SRC_TEMPLATES}/config/samples/org.eclipse.che_v1_checluster.yaml" "${TARGET_TEMPLATES}/crds/org_v1_che_cr.yaml"
 }
 
 deployEclipseCheStable(){
