@@ -100,12 +100,12 @@ updateRoles() {
   echo "[INFO] Updating roles with DW and DWCO roles"
 
   CLUSTER_ROLES=(
-    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/kubernetes/objects/devworkspace-controller-view-workspaces.ClusterRole.yaml
-    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/kubernetes/objects/devworkspace-controller-edit-workspaces.ClusterRole.yaml
-    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/kubernetes/objects/devworkspace-controller-leader-election-role.Role.yaml
-    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/kubernetes/objects/devworkspace-controller-proxy-role.ClusterRole.yaml
-    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/kubernetes/objects/devworkspace-controller-role.ClusterRole.yaml
-    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/kubernetes/objects/devworkspace-controller-view-workspaces.ClusterRole.yaml
+    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspace-controller-view-workspaces.ClusterRole.yaml
+    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspace-controller-edit-workspaces.ClusterRole.yaml
+    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspace-controller-leader-election-role.Role.yaml
+    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspace-controller-proxy-role.ClusterRole.yaml
+    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspace-controller-role.ClusterRole.yaml
+    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/openshift/objects/devworkspace-controller-view-workspaces.ClusterRole.yaml
     https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-role.ClusterRole.yaml
     https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-metrics-reader.ClusterRole.yaml
   )
@@ -164,6 +164,18 @@ updateOperatorYaml() {
   yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_workspace_plugin_broker_metadata\") | .value ) = \"${PLUGIN_BROKER_METADATA_IMAGE}\"" ${OPERATOR_YAML}
   yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_workspace_plugin_broker_artifacts\") | .value ) = \"${PLUGIN_BROKER_ARTIFACTS_IMAGE}\"" ${OPERATOR_YAML}
   yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image\") | .value ) = \"${JWT_PROXY_IMAGE}\"" ${OPERATOR_YAML}
+
+  # Deletes old DWCO container
+  yq -riY "del(.spec.template.spec.containers[1])" $OPERATOR_YAML
+  yq -riY ".spec.template.spec.containers[1] = \"devworkspace-container\"" $OPERATOR_YAML
+
+  # Add DWCO container
+  DWCO_CONTAINER=$(curl -sL https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-manager.Deployment.yaml |  sed '1,/containers:/d' | sed -n '/serviceAccountName:/q;p')
+  echo "$DWCO_CONTAINER" > dwcontainer
+
+  sed -i -e '/- devworkspace-container/{r dwcontainer' -e 'd}' $OPERATOR_YAML
+  rm dwcontainer
+
   addLicenseHeader $OPERATOR_YAML
 }
 
@@ -326,12 +338,12 @@ detectImages
 
 pushd "${ROOT_PROJECT_DIR}" || true
 
-generateCRD "v1"
-generateCRD "v1beta1"
-updateRoles
+# generateCRD "v1"
+# generateCRD "v1beta1"
+# updateRoles
 updateOperatorYaml
-updateDockerfile
-updateNighltyBundle
-updateDW
+# updateDockerfile
+# updateNighltyBundle
+# updateDW
 
 popd || true

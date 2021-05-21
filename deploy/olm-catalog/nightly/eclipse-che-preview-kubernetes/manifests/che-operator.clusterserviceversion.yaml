@@ -76,13 +76,13 @@ metadata:
     categories: Developer Tools
     certified: "false"
     containerImage: quay.io/eclipse/che-operator:nightly
-    createdAt: "2021-05-21T06:31:38Z"
+    createdAt: "2021-05-21T09:28:41Z"
     description: A Kube-native development solution that delivers portable and collaborative
       developer workspaces.
     operatorframework.io/suggested-namespace: eclipse-che
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.31.0-190.nightly
+  name: eclipse-che-preview-kubernetes.v7.31.0-192.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -441,6 +441,24 @@ spec:
                 - devworkspaces
                 - devworkspacetemplates
               verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - controller.devfile.io
+              resources:
+                - devworkspaceroutings
+                - components
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - workspace.devfile.io
+              resources:
+                - devworkspaces
+                - devworkspacetemplates
+              verbs:
                 - create
                 - delete
                 - deletecollection
@@ -457,6 +475,33 @@ spec:
                 - deletecollection
                 - patch
                 - update
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps/status
+              verbs:
+                - get
+                - update
+                - patch
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
             - apiGroups:
                 - authentication.k8s.io
               resources:
@@ -488,16 +533,6 @@ spec:
                 - list
                 - watch
             - apiGroups:
-                - metrics.k8s.io
-              resources:
-                - pods
-                - nodes
-              verbs:
-                - get
-                - list
-                - watch
-            - apiGroups:
-                - batch
                 - ""
               resources:
                 - pods/exec
@@ -663,37 +698,6 @@ spec:
                 - get
                 - list
                 - watch
-            - nonResourceURLs:
-                - /metrics
-              verbs:
-                - get
-            - apiGroups:
-                - ""
-              resources:
-                - configmaps
-              verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
-            - apiGroups:
-                - ""
-              resources:
-                - configmaps/status
-              verbs:
-                - get
-                - update
-                - patch
-            - apiGroups:
-                - ""
-              resources:
-                - events
-              verbs:
-                - create
-                - patch
             - apiGroups:
                 - ""
               resources:
@@ -875,6 +879,10 @@ spec:
                 - routes/custom-host
               verbs:
                 - create
+            - nonResourceURLs:
+                - /metrics
+              verbs:
+                - get
           serviceAccountName: che-operator
         - rules:
             - apiGroups:
@@ -1025,6 +1033,8 @@ spec:
                             fieldPath: metadata.name
                       - name: OPERATOR_NAME
                         value: devworkspace-operator
+                      - name: MAX_CONCURRENT_RECONCILES
+                        value: "1"
                       - name: CONTROLLER_SERVICE_ACCOUNT_NAME
                         valueFrom:
                           fieldRef:
@@ -1212,4 +1222,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.31.0-190.nightly
+  version: 7.31.0-192.nightly

@@ -58,7 +58,6 @@ prepareTemplates() {
 
   # Download Dev Workspace operator templates
   echo "[INFO] Downloading Dev Workspace operator templates ..."
-
   rm -f /tmp/devworkspace-operator.zip
   rm -rf /tmp/devfile-devworkspace-operator-*
   rm -rf /tmp/devworkspace-operator/
@@ -68,7 +67,19 @@ prepareTemplates() {
 
   unzip -q /tmp/devworkspace-operator.zip '*/deploy/deployment/*' -d /tmp
   cp -rf /tmp/devfile-devworkspace-operator*/deploy/* /tmp/devworkspace-operator/templates
+  echo "[INFO] Downloading Dev Workspace operator templates completed."
 
+  # Download Dev Workspace Che operator templates
+  echo "[INFO] Downloading Dev Workspace Che operator templates ..."
+  rm -f /tmp/devworkspace-che-operator.zip
+  rm -rf /tmp/che-incubator-devworkspace-che-operator-*
+  rm -rf /tmp/devworkspace-che-operator/
+  mkdir -p /tmp/devworkspace-che-operator/templates
+
+  curl -sL https://api.github.com/repos/che-incubator/devworkspace-che-operator/zipball/${DEV_WORKSPACE_CHE_OPERATOR_VERSION} > /tmp/devworkspace-che-operator.zip
+
+  unzip -q /tmp/devworkspace-che-operator.zip '*/deploy/deployment/*' -d /tmp
+  cp -r /tmp/che-incubator-devworkspace-che-operator*/deploy/* /tmp/devworkspace-che-operator/templates
   echo "[INFO] Downloading Dev Workspace operator templates completed."
 }
 
