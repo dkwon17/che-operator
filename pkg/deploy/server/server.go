@@ -123,7 +123,7 @@ func (s *Server) SyncCheService() (bool, error) {
 	}
 
 	spec := deploy.GetServiceSpec(s.deployContext, deploy.CheServiceName, portName, portNumber, s.component)
-	return deploy.Sync(s.deployContext, spec, deploy.ServiceDefaultDiffOpts)
+	return deploy.Sync(s.deployContext, spec, deploy.DefaultServiceDiffOpts)
 }
 
 func (s Server) ExposeCheEndpoint() (bool, error) {

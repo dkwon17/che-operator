@@ -125,6 +125,24 @@ checkOperatorYaml() {
   fi
 }
 
+checkRoles() {
+  # files to check
+  local RoleYaml="deploy/role.yaml"
+  local ClusterRoleYaml="deploy/cluster_role.yaml"
+  local ProxyClusterRoleYaml="deploy/proxy_cluster_role.yaml"
+
+  changedFiles=(
+    $(git diff --name-only)
+  )
+  if [[ " ${changedFiles[*]} " =~ $RoleYaml ]] || [[ " ${changedFiles[*]} " =~ $ClusterRoleYaml ]] || [[ " ${changedFiles[*]} " =~ $ProxyClusterRoleYaml ]]; then
+    echo "[ERROR] Roles are not up to date: ${BASH_REMATCH}"
+    echo "[ERROR] Run 'olm/update-resources.sh' to update them."
+    exit 1
+  else
+    echo "[INFO] Roles are up to date."
+  fi
+}
+
 checkDW() {
   # files to check
   local CHEMANAGER_CRD="deploy/crds/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml"
@@ -148,6 +166,7 @@ pushd "${ROOT_PROJECT_DIR}" || true
 
 updateResources
 checkCRDs
+checkRoles
 checkNightlyOlmBundle
 checkDockerfile
 checkOperatorYaml

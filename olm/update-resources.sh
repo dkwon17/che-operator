@@ -96,6 +96,68 @@ detectImages() {
   echo "[INFO] Plugin broker jwt proxy image: $JWT_PROXY_IMAGE"
 }
 
+updateRoles() {
+  echo "[INFO] Updating roles with DW and DWCO roles"
+
+  CLUSTER_ROLES=(
+    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/kubernetes/objects/devworkspace-controller-view-workspaces.ClusterRole.yaml
+    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/kubernetes/objects/devworkspace-controller-edit-workspaces.ClusterRole.yaml
+    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/kubernetes/objects/devworkspace-controller-leader-election-role.Role.yaml
+    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/kubernetes/objects/devworkspace-controller-proxy-role.ClusterRole.yaml
+    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/kubernetes/objects/devworkspace-controller-role.ClusterRole.yaml
+    https://raw.githubusercontent.com/devfile/devworkspace-operator/main/deploy/deployment/kubernetes/objects/devworkspace-controller-view-workspaces.ClusterRole.yaml
+    https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-role.ClusterRole.yaml
+    https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-metrics-reader.ClusterRole.yaml
+  )
+
+  # Updates cluster_role.yaml based on DW and DWCO roles
+  ## Removes old cluster roles
+  cat $ROOT_PROJECT_DIR/deploy/cluster_role.yaml | sed '/CHE-OPERATOR ROLES ONLY: END/q0' > $ROOT_PROJECT_DIR/deploy/cluster_role.yaml.tmp
+  mv $ROOT_PROJECT_DIR/deploy/cluster_role.yaml.tmp $ROOT_PROJECT_DIR/deploy/cluster_role.yaml
+
+  ## Copy new cluster roles
+  for roles in "${CLUSTER_ROLES[@]}"; do
+    echo "  # "$(basename $roles) >> $ROOT_PROJECT_DIR/deploy/cluster_role.yaml
+
+    CONTENT=$(curl -sL $roles | sed '1,/rules:/d')
+    while IFS= read -r line; do
+      echo "  $line" >> $ROOT_PROJECT_DIR/deploy/cluster_role.yaml
+    done <<< "$CONTENT"
+  done
+
+  ROLES=(
+    https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-leader-election-role.Role.yaml
+  )
+
+  # Updates role.yaml
+  ## Removes old roles
+  cat $ROOT_PROJECT_DIR/deploy/role.yaml | sed '/CHE-OPERATOR ROLES ONLY: END/q0' > $ROOT_PROJECT_DIR/deploy/role.yaml.tmp
+  mv $ROOT_PROJECT_DIR/deploy/role.yaml.tmp $ROOT_PROJECT_DIR/deploy/role.yaml
+
+
+  ## Copy new roles
+  for roles in "${ROLES[@]}"; do
+    echo "# "$(basename $roles) >> $ROOT_PROJECT_DIR/deploy/role.yaml
+
+    CONTENT=$(curl -sL $roles | sed '1,/rules:/d')
+    while IFS= read -r line; do
+      echo "$line" >> $ROOT_PROJECT_DIR/deploy/role.yaml
+    done <<< "$CONTENT"
+  done
+
+  # Updates proxy_cluster_role.yaml based on DWCO
+  ## Remove old roles
+  cat $ROOT_PROJECT_DIR/deploy/proxy_cluster_role.yaml | sed '/rules:/q0' > $ROOT_PROJECT_DIR/deploy/proxy_cluster_role.yaml.tmp
+  mv $ROOT_PROJECT_DIR/deploy/proxy_cluster_role.yaml.tmp $ROOT_PROJECT_DIR/deploy/proxy_cluster_role.yaml
+
+  ## Copy new roles
+  CLUSTER_PROXY_ROLES=https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-proxy-role.ClusterRole.yaml
+  CONTENT=$(curl -sL $CLUSTER_PROXY_ROLES | sed '1,/rules:/d')
+  while IFS= read -r line; do
+    echo "$line" >> $ROOT_PROJECT_DIR/deploy/proxy_cluster_role.yaml
+  done <<< "$CONTENT"
+}
+
 updateOperatorYaml() {
   OPERATOR_YAML="${ROOT_PROJECT_DIR}/deploy/operator.yaml"
   yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_pvc_jobs\") | .value ) = \"${UBI8_MINIMAL_IMAGE}\"" ${OPERATOR_YAML}
@@ -266,6 +328,7 @@ pushd "${ROOT_PROJECT_DIR}" || true
 
 generateCRD "v1"
 generateCRD "v1beta1"
+updateRoles
 updateOperatorYaml
 updateDockerfile
 updateNighltyBundle

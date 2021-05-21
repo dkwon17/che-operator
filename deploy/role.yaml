@@ -18,6 +18,7 @@ metadata:
     app.kubernetes.io/instance: che
     app.kubernetes.io/component: che-operator
 rules:
+### CHE-OPERATOR ROLES ONLY: BEGIN
 - apiGroups:
   - extensions
   resources:
@@ -123,7 +124,8 @@ rules:
   verbs:
   - get
   - list
-# devworkspace-che requirements: devworkspace-che-leader-election-role
+### CHE-OPERATOR ROLES ONLY: END
+# devworkspace-che-leader-election-role.Role.yaml
 - apiGroups:
   - ""
   resources:
