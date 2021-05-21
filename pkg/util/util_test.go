@@ -14,12 +14,6 @@ package util
 import (
 	"reflect"
 	"testing"
-
-	"k8s.io/client-go/kubernetes/scheme"
-
-	v1 "github.com/eclipse-che/che-operator/api/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestGeneratePasswd(t *testing.T) {
@@ -49,35 +43,5 @@ func TestGetValue(t *testing.T) {
 
 	if !reflect.DeepEqual(var2, defaultValue) {
 		t.Errorf("Test failed. Expected '%s', but got '%s'", var2, defaultValue)
-	}
-}
-
-func TestReload(t *testing.T) {
-	cheCluster := &v1.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:       "eclipse-che",
-			Name:            "eclipse-che",
-			ResourceVersion: "1",
-		},
-	}
-
-	v1.SchemeBuilder.AddToScheme(scheme.Scheme)
-	cli := fake.NewFakeClientWithScheme(scheme.Scheme, cheCluster)
-
-	cheCluster = &v1.CheCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace:       "eclipse-che",
-			Name:            "eclipse-che",
-			ResourceVersion: "2",
-		},
-	}
-
-	err := ReloadCheCluster(cli, cheCluster)
-	if err != nil {
-		t.Errorf("Failed to reload checluster, %v", err)
-	}
-
-	if cheCluster.ObjectMeta.ResourceVersion != "1" {
-		t.Errorf("Failed to reload checluster")
 	}
 }
