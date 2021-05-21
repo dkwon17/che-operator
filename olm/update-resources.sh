@@ -169,12 +169,21 @@ updateOperatorYaml() {
   yq -riY "del(.spec.template.spec.containers[1])" $OPERATOR_YAML
   yq -riY ".spec.template.spec.containers[1] = \"devworkspace-container\"" $OPERATOR_YAML
 
-  # Add DWCO container
-  DWCO_CONTAINER=$(curl -sL https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-manager.Deployment.yaml |  sed '1,/containers:/d' | sed -n '/serviceAccountName:/q;p')
+  # Extract DWCO container spec from deployment
+  DWCO_CONTAINER=$(curl -sL https://raw.githubusercontent.com/che-incubator/devworkspace-che-operator/main/deploy/deployment/openshift/objects/devworkspace-che-manager.Deployment.yaml \
+    | sed '1,/containers:/d' \
+    | sed -n '/serviceAccountName:/q;p' \
+    | sed -e 's/^/  /')
   echo "$DWCO_CONTAINER" > dwcontainer
 
+  # Add DWCO container to operator.yaml
   sed -i -e '/- devworkspace-container/{r dwcontainer' -e 'd}' $OPERATOR_YAML
   rm dwcontainer
+
+  # update securityContext
+  yq -riY ".spec.template.spec.containers[1].securityContext.privileged = false" ${OPERATOR_YAML}
+  yq -riY ".spec.template.spec.containers[1].securityContext.readOnlyRootFilesystem = false" ${OPERATOR_YAML}
+  yq -riY ".spec.template.spec.containers[1].securityContext.capabilities.drop[0] = \"ALL\"" ${OPERATOR_YAML}
 
   addLicenseHeader $OPERATOR_YAML
 }
@@ -338,12 +347,12 @@ detectImages
 
 pushd "${ROOT_PROJECT_DIR}" || true
 
-# generateCRD "v1"
-# generateCRD "v1beta1"
-# updateRoles
+generateCRD "v1"
+generateCRD "v1beta1"
+updateRoles
 updateOperatorYaml
-# updateDockerfile
-# updateNighltyBundle
-# updateDW
+updateDockerfile
+updateNighltyBundle
+updateDW
 
 popd || true
