@@ -3,4 +3,4 @@ kind: Namespace
 metadata:
   labels:
     app: che-operator
-  name: system
+  name: eclipse-che

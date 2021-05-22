@@ -84,7 +84,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/eclipse-che/che-operator
     support: Eclipse Foundation
-  name: eclipse-che-preview-kubernetes.v7.31.0-184.nightly
+  name: eclipse-che-preview-kubernetes.v7.31.0-190.nightly
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -95,6 +95,71 @@ spec:
         displayName: Eclipse Che Cluster
         kind: CheCluster
         name: checlusters.org.eclipse.che
+        specDescriptors:
+          - description: Deploys the DevWorkspace Operator in the cluster. Does nothing
+              when a matching version of the Operator is already installed. Fails
+              when a non-matching version of the Operator is already installed.
+            displayName: Enable Dev Workspace operator
+            path: devWorkspace.enable
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        statusDescriptors:
+          - description: Status of a Che installation. Can be `Available`, `Unavailable`,
+              or `Available, Rolling Update in Progress`.
+            displayName: Status
+            path: cheClusterRunning
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes.phase
+          - description: Public URL to the Che server.
+            displayName: Eclipse Che URL
+            path: cheURL
+            x-descriptors:
+              - urn:alm:descriptor:org.w3:link
+          - description: Current installed Che version.
+            displayName: 'displayName: Eclipse Che version'
+            path: cheVersion
+            x-descriptors:
+              - urn:alm:descriptor:org.w3:link
+          - description: Public URL to the devfile registry.
+            displayName: Devfile registry URL
+            path: devfileRegistryURL
+            x-descriptors:
+              - urn:alm:descriptor:org.w3:link
+          - description: A URL that points to some URL where to find help related
+              to the current Operator status.
+            displayName: Help link
+            path: helpLink
+            x-descriptors:
+              - urn:alm:descriptor:org.w3:link
+          - description: Public URL to the Identity Provider server, Keycloak or RH-SSO,.
+            displayName: Keycloak Admin Console URL
+            path: keycloakURL
+            x-descriptors:
+              - urn:alm:descriptor:org.w3:link
+          - description: A human readable message indicating details about why the
+              Pod is in this condition.
+            displayName: Message
+            path: message
+            x-descriptors:
+              - urn:alm:descriptor:text
+          - description: OpenShift OAuth secret in `openshift-config` namespace that
+              contains user credentials for HTPasswd identity provider.
+            displayName: OpenShift OAuth secret in `openshift-config` namespace that
+              contains user credentials for HTPasswd identity provider.
+            path: openShiftOAuthUserCredentialsSecret
+            x-descriptors:
+              - urn:alm:descriptor:text
+          - description: Public URL to the plugin registry.
+            displayName: Plugin registry URL
+            path: pluginRegistryURL
+            x-descriptors:
+              - urn:alm:descriptor:org.w3:link
+          - description: A brief CamelCase message indicating details about why the
+              Pod is in this state.
+            displayName: Reason
+            path: reason
+            x-descriptors:
+              - urn:alm:descriptor:text
         version: v1
   description: |
     A collaborative Kubernetes-native development solution that delivers Kubernetes workspaces and in-browser IDE for rapid cloud application development.
@@ -1057,4 +1122,4 @@ spec:
   maturity: stable
   provider:
     name: Eclipse Foundation
-  version: 7.31.0-184.nightly
+  version: 7.31.0-190.nightly

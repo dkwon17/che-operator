@@ -108,7 +108,6 @@ waitWorkspaceStart() {
     login
 
     chectl workspace:list --chenamespace=${NAMESPACE}
-    # workspaceStatus=$(chectl workspace:list --chenamespace=${NAMESPACE} | tail -1 | awk '{ print $4} ' || true)
     workspaceStatus=$(chectl workspace:list --chenamespace=${NAMESPACE} | tail -1 | awk '{ print $4} ')
 
     if [ "${workspaceStatus}" == "RUNNING" ]; then
@@ -208,21 +207,12 @@ deployEclipseCheWithTemplates() {
   local image=$3
   local templates=$4
 
-  # if [ -z "${LAST_PACKAGE_VERSION:-}" ]; then
-  #   echo "[INFO] Eclipse Che custom resource"
-  #   local crSample=${templates}/che-operator/samples/org.eclipse.che_v1_checluster.yaml
-  #   cat ${crSample}
+  echo "[INFO] Eclipse Che custom resource"
+  local crSample=${templates}/che-operator/crds/org_v1_che_cr.yaml
+  cat ${crSample}
 
-  #   echo "[INFO] Eclipse Che operator deployment"
-  #   cat ${templates}/che-operator/manager/manager.yaml
-  # else
-    echo "[INFO] Eclipse Che custom resource"
-    local crSample=${templates}/che-operator/crds/org_v1_che_cr.yaml
-    cat ${crSample}
-
-    echo "[INFO] Eclipse Che operator deployment"
-    cat ${templates}/che-operator/operator.yaml
-  # fi
+  echo "[INFO] Eclipse Che operator deployment"
+  cat ${templates}/che-operator/operator.yaml
 
   chectl server:deploy \
     --platform=${platform} \

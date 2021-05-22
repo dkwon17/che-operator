@@ -16,7 +16,7 @@ The operator watches for a Custom Resource of Kind `CheCluster`, and operator co
     * turn on/off OpenShift oAuth (login with OpenShift in Che) (create identity provider, oAuth client, update Che ConfigMap)
 * etc
 
-Che operator is implemented using [operator framework](https://github.com/operator-framework) and the Go programming language. Eclipse Che configuration defined using a custom resource definition object and stored in the custom Kubernetes resource named CheCluster (Kubernetes API group `org.eclipse.checluster`). Che operator extends Kubernetes API to embed Eclipse Che to Kubernetes cluster in a native way.
+Che operator is implemented using [operator framework](https://github.com/operator-framework) and the Go programming language. Eclipse Che configuration defined using a custom resource definition object and stored in the custom Kubernetes resource named `checluster`(or plural `checlusters`) in the Kubernetes API group `org.eclipse.che`. Che operator extends Kubernetes API to embed Eclipse Che to Kubernetes cluster in a native way.
 
 ## CheCluster custom resource
 

@@ -663,6 +663,8 @@ type CheClusterStatus struct {
 	HelpLink string `json:"helpLink,omitempty"`
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 // +k8s:openapi-gen=true
