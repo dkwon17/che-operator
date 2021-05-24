@@ -35,11 +35,11 @@ installOperatorSDK() {
 }
 
 updateResources() {
-  export NO_DATE_UPDATE="true"
-  export NO_INCREMENT="true"
-
   echo "[INFO] Update resources with skipping version incrementation and timestamp..."
-  source "${ROOT_PROJECT_DIR}/olm/update-resources.sh"
+
+  pushd "${ROOT_PROJECT_DIR}" || true
+  make update-resources NO_DATE_UPDATE="true" NO_INCREMENT="true" -s
+  popd || true
 }
 
 # check_che_types function check first if api/v1/checluster_types.go file suffer modifications and
@@ -51,14 +51,12 @@ checkCRDs() {
     local CRD_V1="config/crd/bases/org_v1_che_crd.yaml"
     local CRD_V1BETA1="config/crd/bases/org_v1_che_crd.yaml"
 
-    source "${ROOT_PROJECT_DIR}/olm/update-resources.sh"
-
     changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
 
     # Check if there are any difference in the crds. If yes, then fail check.
     if [[ " ${changedFiles[*]} " =~ $CRD_V1 ]] || [[ " ${changedFiles[*]} " =~ $CRD_V1BETA1 ]]; then
         echo "[ERROR] CRD file is not up to date: ${BASH_REMATCH}"
-        echo "[ERROR] Run 'olm/update-resources.sh' to regenerate CRD files."
+        echo "[ERROR] Run 'make update-resources -s' to regenerate CRD files."
         exit 1
     else
         echo "[INFO] CRDs files are up to date."
@@ -76,7 +74,7 @@ checkNightlyOlmBundle() {
   if [[ " ${changedFiles[*]} " =~ $CSV_FILE_OPENSHIFT ]] || [[ " ${changedFiles[*]} " =~ $CSV_FILE_OPENSHIFT ]] || \
      [[ " ${changedFiles[*]} " =~ $CRD_FILE_KUBERNETES ]] || [[ " ${changedFiles[*]} " =~ $CRD_FILE_OPENSHIFT ]]; then
     echo "[ERROR] Nighlty bundle is not up to date: ${BASH_REMATCH}"
-    echo "[ERROR] Run 'olm/update-resources.sh' to regenerate CSV/CRD files."
+    echo "[ERROR] Run 'make update-resources -s' to regenerate CSV/CRD files."
     exit 1
   else
     echo "[INFO] Nightly bundles are up to date."
@@ -90,7 +88,7 @@ checkDockerfile() {
   changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
   if [[ " ${changedFiles[*]} " =~ $Dockerfile ]]; then
     echo "[ERROR] Dockerfile is not up to date"
-    echo "[ERROR] Run 'olm/update-resources.sh' to update Dockerfile"
+    echo "[ERROR] Run 'make update-resources -s' to update Dockerfile"
     exit 1
   else
     echo "[INFO] Dockerfile is up to date."
@@ -104,7 +102,7 @@ checkOperatorYaml() {
   changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
   if [[ " ${changedFiles[*]} " =~ $OperatorYaml ]]; then
     echo "[ERROR] $OperatorYaml is not up to date"
-    echo "[ERROR] Run 'olm/update-resources.sh' to update $OperatorYaml"
+    echo "[ERROR] Run 'make update-resources -s' to update $OperatorYaml"
     exit 1
   else
     echo "[INFO] $OperatorYaml is up to date."

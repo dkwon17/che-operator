@@ -43,20 +43,6 @@ function getBundlePath() {
   echo "${ROOT_DIR}/bundle/${channel}/$(getPackageName "${platform}")"
 }
 
-getCurrentStableVersion() {
-  platform="${1}"
-  if [ -z "${platform}" ]; then
-    echo "[ERROR] Please specify first argument: 'platform'"
-    exit 1
-  fi
-
-  STABLE_BUNDLE_PATH=$(getBundlePath "${platform}" "stable")
-  LAST_STABLE_CSV="${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
-
-  lastStableVersion=$(yq -r ".spec.version" "${LAST_STABLE_CSV}")
-  echo "${lastStableVersion}"
-}
-
 createCatalogSource() {
   platform="${1}"
   if [ -z "${platform}" ]; then
