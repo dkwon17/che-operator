@@ -20,8 +20,26 @@
             "group": "build"
         },
         {
-            "label": "Format che-operator code and fix imports",
-            "command": "go fmt ./...; find . -not -path \"./vendor/*\" -name '*.go' -exec goimports -l -w {} \\;",
+            "label": "Format che-operator code",
+            "command": "go fmt ./...;",
+            "options": {
+                "env": {
+                    "ARCH": "amd64"
+                }
+            },
+            "type": "shell",
+            "args": [],
+            "problemMatcher": [
+                "$go"
+            ],
+            "presentation": {
+                "reveal": "always"
+            },
+            "group": "build"
+        },
+        {
+            "label": "Fix che-operator imports",
+            "command": "find . -not -path \"./vendor/*\" -name '*.go' -exec goimports -l -w {} \\;",
             "options": {
                 "env": {
                     "ARCH": "amd64"
@@ -39,7 +57,7 @@
         },
         {
             "label": "Update che-operator dependencies",
-            "command": "go mod vendor",
+            "command": "go mod tidy; go mod vendor",
             "options": {
                 "env": {
                     "ARCH": "amd64"
@@ -56,13 +74,8 @@
             "group": "build"
         },
         {
-            "label": "Run che-operator mock tests",
+            "label": "Run che-operator tests",
             "command": "go test -mod=vendor -v ./...",
-            "options": {
-                "env": {
-                    "MOCK_API": "true"
-                }
-            },
             "type": "shell",
             "args": [],
             "problemMatcher": [
@@ -130,7 +143,7 @@
 
         {
             "label": "Build test bundle Kubernetes platform",
-            "command": "export BUNDLE_IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:v0.0.1\"; make bundle IMG=${BUNDLE_IMG} platform=\"kubebernetes\"; make bundle-build bundle-push BUNDLE_IMG=${BUNDLE_IMG} platform=\"kubebernetes\" --namespace ${NAMESPACE}",
+            "command": "export BUNDLE_IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator:v0.0.1\"; make bundle IMG=${BUNDLE_IMG} platform=\"kubernetes\"; make bundle-build bundle-push BUNDLE_IMG=${BUNDLE_IMG} platform=\"kubernetes\"",
             "type": "shell",
             "args": [],
             "problemMatcher": [
@@ -143,7 +156,7 @@
         },
         {
             "label": "Build test bundle Openshift platform",
-            "command": "export BUNDLE_IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator-bundle:v0.0.1\"; make bundle IMG=${BUNDLE_IMG} platform=\"openshift\"; make bundle-build bundle-push BUNDLE_IMG=${BUNDLE_IMG} platform=\"openshift\" --namespace ${NAMESPACE}",
+            "command": "export BUNDLE_IMG=\"${IMAGE_REGISTRY_HOST}/${IMAGE_REGISTRY_USER_NAME}/che-operator-bundle:v0.0.1\"; make bundle IMG=${BUNDLE_IMG} platform=\"openshift\"; make bundle-build bundle-push BUNDLE_IMG=${BUNDLE_IMG} platform=\"openshift\"",
             "type": "shell",
             "args": [],
             "problemMatcher": [

@@ -392,3 +392,28 @@ catalog-build: opm ## Build a catalog image.
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
+
+chectl-templ:
+	if [ -z "$(TARGET)" ];
+		then echo "A";
+		echo "[ERROR] Specify templates target location, using argument `TARGET`"
+		exit 1
+	fi
+	if [ -z "$(SRC)" ]; then
+		SRC=$$(pwd)
+	else
+		SRC=$(SRC)
+	fi
+
+	mkdir -p $(TARGET)
+
+	cp -f "$${SRC}/config/manager/manager.yaml" "$(TARGET)/operator.yaml"
+	cp -rf "$${SRC}/config/crd/bases/" "$(TARGET)/crds/"
+	cp -f "$${SRC}/config/rbac/role.yaml" "$(TARGET)/"
+	cp -f "$${SRC}/config/rbac/role_binding.yaml" "$(TARGET)/"
+	cp -f "$${SRC}/config/rbac/cluster_role.yaml" "$(TARGET)/"
+	cp -f "$${SRC}/config/rbac/cluster_rolebinding.yaml" "$(TARGET)/"
+	cp -f "$${SRC}/config/rbac/service_account.yaml" "$(TARGET)/"
+	cp -f "$${SRC}/config/samples/org.eclipse.che_v1_checluster.yaml" "$(TARGET)/crds/org_v1_che_cr.yaml"
+
+	echo "[INFO] chectl template folder is ready: ${TARGET}"
