@@ -135,6 +135,24 @@ removeRequiredAttribute:
 	done < "$${filePath}"
 	mv $${filePath}.tmp $${filePath}
 
+add-license-header:
+	if [ -z $(FILE) ]; then
+		echo "[ERROR] Provide argument `FILE` with file path value."
+		exit 1
+	fi
+
+	echo -e "#
+		#  Copyright (c) 2019-2021 Red Hat, Inc.
+		#    This program and the accompanying materials are made
+		#    available under the terms of the Eclipse Public License 2.0
+		#    which is available at https://www.eclipse.org/legal/epl-2.0/
+		#
+		#  SPDX-License-Identifier: EPL-2.0
+		#
+		#  Contributors:
+		#    Red Hat, Inc. - initial API and implementation
+	$$(cat $(FILE))" > $(FILE)
+
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	# Generate CRDs v1 and v2
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
@@ -144,11 +162,15 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 	cd config/crd/bases
 
 	mv org.eclipse.che_checlusters.yaml org_v1_che_crd.yaml
+	# remove yaml delimitier, which makes OLM catalog source image broken.
 	sed -i.bak '/---/d' org_v1_che_crd-v1beta1.yaml
 	sed -i.bak '/---/d' org_v1_che_crd.yaml
 	rm -rf org_v1_che_crd-v1beta1.yaml.bak org_v1_che_crd.yaml.bak
 
 	cd ../../..
+
+	$(MAKE) add-license-header FILE="config/crd/bases/org_v1_che_crd-v1beta1.yaml"
+	$(MAKE) add-license-header FILE="config/crd/bases/org_v1_che_crd.yaml"
 
 	$(MAKE) removeRequiredAttribute "filePath=config/crd/bases/org_v1_che_crd-v1beta1.yaml"
 
@@ -331,6 +353,7 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 
 bundles:
 	$(shell ./olm/update-resources.sh)
+	$(MAKE) add-license-header FILE="config/manager/manager.yaml"
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.

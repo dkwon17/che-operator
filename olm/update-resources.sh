@@ -43,29 +43,6 @@ checkOperatorSDKVersion() {
   fi
 }
 
-# Removes `required` attributes for fields to be compatible with OCP 3.11
-removeRequiredAttribute() {
-  REQUIRED=false
-  while IFS= read -r line
-  do
-      if [[ $REQUIRED == true ]]; then
-          if [[ $line == *"- "* ]]; then
-              continue
-          else
-              REQUIRED=false
-          fi
-      fi
-
-      if [[ $line == *"required:"* ]]; then
-          REQUIRED=true
-          continue
-      fi
-
-      echo  "$line" >> $1.tmp
-  done < "$1"
-  mv $1.tmp $1
-}
-
 detectImages() {
   echo "[INFO] Check update some base images..."
   ubiMinimal8Version=$(skopeo inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.version')
@@ -92,7 +69,6 @@ updateOperatorYaml() {
   yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_workspace_plugin_broker_metadata\") | .value ) = \"${PLUGIN_BROKER_METADATA_IMAGE}\"" ${OPERATOR_YAML}
   yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_workspace_plugin_broker_artifacts\") | .value ) = \"${PLUGIN_BROKER_ARTIFACTS_IMAGE}\"" ${OPERATOR_YAML}
   yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image\") | .value ) = \"${JWT_PROXY_IMAGE}\"" ${OPERATOR_YAML}
-  addLicenseHeader $OPERATOR_YAML
 }
 
 updateDockerfile() {
@@ -137,9 +113,6 @@ updateNighltyBundle() {
     if [ -z "${NO_INCREMENT}" ]; then
       incrementNightlyVersion "${platform}"
     fi
-
-    addLicenseHeader "${ROOT_PROJECT_DIR}/config/crd/bases/org_v1_che_crd-v1beta1.yaml"
-    addLicenseHeader "${ROOT_PROJECT_DIR}/config/crd/bases/org_v1_che_crd.yaml"
 
     # templateCRD="${ROOT_PROJECT_DIR}/config/crd/bases/org_v1_che_crd.yaml"
     # platformCRD="${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
@@ -224,7 +197,7 @@ updateNighltyBundle() {
 
     # set `app.kubernetes.io/managed-by` label
     yq -riSY  '(.spec.install.spec.deployments[0].spec.template.metadata.labels."app.kubernetes.io/managed-by") = "olm"' "${NEW_CSV}"
-    
+  
     # set Pod Security Context Posture
     yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostIPC") = false' "${NEW_CSV}"
     yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostNetwork") = false' "${NEW_CSV}"
@@ -240,20 +213,6 @@ updateNighltyBundle() {
 
     # popd || true
   done
-}
-
-addLicenseHeader() {
-echo -e "#
-#  Copyright (c) 2019-2021 Red Hat, Inc.
-#    This program and the accompanying materials are made
-#    available under the terms of the Eclipse Public License 2.0
-#    which is available at https://www.eclipse.org/legal/epl-2.0/
-#
-#  SPDX-License-Identifier: EPL-2.0
-#
-#  Contributors:
-#    Red Hat, Inc. - initial API and implementation
-$(cat $1)" > $1
 }
 
 checkOperatorSDKVersion
