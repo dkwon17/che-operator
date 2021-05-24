@@ -141,9 +141,7 @@ func ReconcileDevWorkspace(deployContext *deploy.DeployContext) (bool, error) {
 			return true, nil
 		}
 	} else if util.GetServerExposureStrategy(deployContext.CheCluster) == "single-host" {
-		logrus.Warn(`DevWorkspace Che operator can't be enabled in 'single-host mode on Kubernetes cluster'.
-See https://github.com/eclipse/che/issues/19714 for more details.
-To enable DevWorkspace Che operator set 'spec.server.serverExposureStrategy' to 'multi-host'.`)
+		logrus.Warn(`DevWorkspace Che operator can't be enabled in 'single-host mode on Kubernetes cluster'. See https://github.com/eclipse/che/issues/19714 for more details. To enable DevWorkspace Che operator set 'spec.server.serverExposureStrategy' to 'multi-host'.`)
 		return true, nil
 	}
 
