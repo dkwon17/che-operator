@@ -9,7 +9,7 @@ OLM packages scripts are using some required dependencies that need to be instal
  - [Operator SDK v0.17.2](https://github.com/operator-framework/operator-sdk/blob/v0.10.0/doc/user/install-operator-sdk.md)
  - [opm](https://github.com/operator-framework/operator-registry/releases/tag/v1.15.1)
 
-WARNING: Please make sure to use the precise `v0.17.2` version of the `operator-sdk`.
+WARNING: Please make sure to use the precise `v1.7.1` version of the `operator-sdk`.
 
 ## Eclipse Che OLM bundles
 
@@ -81,7 +81,7 @@ $ export IMAGE_REGISTRY_USER_NAME=<IMAGE_REGISTRY_USER_NAME> && \
 
 ### Testing custom CatalogSource and bundle images on the Kubernetes
 
-To test your custom CatalogSource and bundle images on the Kubernetes you need to use public image registry. For "docker.io" you don't need any extra steps with pre-creation image repositories. But for "quay.io" you should pre-create the bundle and and catalog image repositories manually and make them publicly visible. If you want to save repositories "private", then it is not necessary to pre-create them, but you need to provide an image pull secret to the cluster to prevent image pull 'unauthorized' error.
+To test your custom CatalogSource and bundle images on the Kubernetes you need to use public image registry. For "docker.io" you don't need any extra steps with pre-creation image repositories. But for "quay.io" you should pre-create the bundle and catalog image repositories manually and make them publicly visible. If you want to save repositories "private", then it is not necessary to pre-create them, but you need to provide an image pull secret to the cluster to prevent image pull 'unauthorized' error.
 
 To test the latest custom "nightly" bundle:
 
@@ -135,7 +135,7 @@ apiVersion:  operators.coreos.com/v1alpha1
 kind:         CatalogSource
 metadata:
   name:         eclipse-che-preview-custom
-  namespace:    che-namespace
+  namespace:    <che-namespace>
 spec:
   image:        quay.io/eclipse/eclipse-che-<openshift|kubernetes>-opm-catalog:preview
   sourceType:  grpc

@@ -86,11 +86,9 @@
             },
             "group": "build"
         },
-
-
         {
             "label": "Update resources",
-            "command": "./olm/update-resources.sh",
+            "command": "make update-resources -s",
             "type": "shell",
             "args": [],
             "problemMatcher": [
@@ -103,7 +101,7 @@
         },
         {
             "label": "Update CR/CRDs",
-            "command": "make generate; make manifests",
+            "command": "make generate manifests -s",
             "type": "shell",
             "args": [],
             "problemMatcher": [

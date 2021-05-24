@@ -9,7 +9,6 @@
 #  Contributors:
 #    Red Hat, Inc. - initial API and implementation
 
-
 bases:
   - ../../manifests
 patchesJson6902:

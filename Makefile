@@ -351,9 +351,280 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 
 	$(OPERATOR_SDK_BINARY) bundle validate ./$${BUNDLE_DIR}
 
-bundles:
-	$(shell ./olm/update-resources.sh)
+getPackageName:
+	if [ -z "$(platform)" ]; then
+		echo "[ERROR] Please specify first argument: 'platform'"
+		exit 1
+	fi
+	echo "eclipse-che-preview-$(platform)"
+
+getBundlePath:
+	if [ -z "$(platform)" ]; then
+		echo "[ERROR] Please specify first argument: 'platform'"
+		exit 1
+	fi
+	if [ -z "$(channel)" ]; then
+		echo "[ERROR] Please specify second argument: 'channel'"
+		exit 1
+	fi
+	PACKAGE_NAME=$$($(MAKE) getPackageName platform="$(platform)" -s)
+	echo "$(PROJECT_DIR)/bundle/$(channel)/$${PACKAGE_NAME}"
+
+increment-nightly-version:
+	if [ -z "$(platform)" ]; then
+		echo "[ERROR] please specify first argument 'platform'"
+		exit 1
+	fi
+
+	NIGHTLY_BUNDLE_PATH=$$($(MAKE) getBundlePath platform="$(platform)" channel="nightly" -s)
+	OPM_BUNDLE_MANIFESTS_DIR="$${NIGHTLY_BUNDLE_PATH}/manifests"
+	CSV="$${OPM_BUNDLE_MANIFESTS_DIR}/che-operator.clusterserviceversion.yaml"
+
+	currentNightlyVersion=$$(yq -r ".spec.version" "$${CSV}")
+	echo  "[INFO] current nightly $(platform) version: $${currentNightlyVersion}"
+
+	incrementPart=$$($(MAKE) get-nightly-version-increment nightlyVersion="$${currentNightlyVersion}" -s) 
+
+	PACKAGE_NAME="eclipse-che-preview-$(platform)"
+
+	CLUSTER_SERVICE_VERSION=$$($(MAKE) get-current-stable-version platform="$(platform)" -s)
+	STABLE_PACKAGE_VERSION=$$(echo "$${CLUSTER_SERVICE_VERSION}" | sed -e "s/$${PACKAGE_NAME}.v//")
+	echo "[INFO] Current stable package version: $${STABLE_PACKAGE_VERSION}"
+
+	# Parse stable version parts
+	majorAndMinor=$${STABLE_PACKAGE_VERSION%.*}
+	STABLE_MINOR_VERSION=$${majorAndMinor#*.}
+	STABLE_MAJOR_VERSION=$${majorAndMinor%.*}
+
+	STABLE_MINOR_VERSION=$$(($$STABLE_MINOR_VERSION+1))
+	echo "$${STABLE_MINOR_VERSION}"
+
+	incrementPart=$$((incrementPart+1))
+	newVersion="$${STABLE_MAJOR_VERSION}.$${STABLE_MINOR_VERSION}.0-$${incrementPart}.nightly"
+
+	echo "[INFO] Set up nightly $(platform) version: $${newVersion}"
+	yq -rY "(.spec.version) = \"$${newVersion}\" | (.metadata.name) = \"eclipse-che-preview-$(platform).v$${newVersion}\"" "$${CSV}" > "$${CSV}.old"
+	mv "$${CSV}.old" "$${CSV}"
+
+get-current-stable-version:
+	if [ -z "$(platform)" ]; then
+		echo "[ERROR] Please specify first argument: 'platform'"
+		exit 1
+	fi
+
+	STABLE_BUNDLE_PATH=$$($(MAKE) getBundlePath platform="$(platform)" channel="stable" -s)
+	LAST_STABLE_CSV="$${STABLE_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
+
+	lastStableVersion=$$(yq -r ".spec.version" "$${LAST_STABLE_CSV}")
+	echo "$${lastStableVersion}"
+
+get-nightly-version-increment:
+	if [ -z $(nightlyVersion) ]; then
+		echo "[ERROR] Provide nightly version to parse"
+		exit 1
+	fi
+
+	versionWithoutNightly="$${nightlyVersion%.nightly}"
+
+	version="$${versionWithoutNightly%-*}"
+
+	incrementPart="$${versionWithoutNightly#*-}"
+
+	echo "$${incrementPart}"
+ 
+update-resources: check-requirements generate manifests kustomize update-resource-images
+	for platform in 'kubernetes' 'openshift'
+	do
+		if [ -z "$(NO_INCREMENT)" ]; then
+			$(MAKE) increment-nightly-version platform="$${platform}"
+		fi
+
+		echo "[INFO] Updating OperatorHub bundle for platform '$${platform}'"
+
+		NIGHTLY_BUNDLE_PATH=$$($(MAKE) getBundlePath platform="$${platform}" channel="nightly" -s)
+		bundleCSVName="che-operator.clusterserviceversion.yaml"
+		NEW_CSV=$${NIGHTLY_BUNDLE_PATH}/manifests/$${bundleCSVName}
+		newNightlyBundleVersion=$$(yq -r ".spec.version" "$${NEW_CSV}")
+		echo "[INFO] Creation new nightly bundle version: $${newNightlyBundleVersion}"
+
+		createdAtOld=$$(yq -r ".metadata.annotations.createdAt" "$${NEW_CSV}")
+
+		$(MAKE) bundle "platform=$${platform}" "VERSION=$${newNightlyBundleVersion}"
+
+		containerImage=$$(sed -n 's|^ *image: *\([^ ]*/che-operator:[^ ]*\) *|\1|p' $${NEW_CSV})
+		echo "[INFO] Updating new package version fields:"
+		echo "[INFO]        - containerImage => $${containerImage}"
+		sed -e "s|containerImage:.*$$|containerImage: $${containerImage}|" "$${NEW_CSV}" > "$${NEW_CSV}.new"
+		mv "$${NEW_CSV}.new" "$${NEW_CSV}"
+
+		if [ "$(NO_DATE_UPDATE)" == "true" ]; then
+			echo "[INFO]        - createdAt => $${createdAtOld}"
+			sed -e "s/createdAt:.*$$/createdAt: \"$${createdAtOld}\"/" "$${NEW_CSV}" > "$${NEW_CSV}.new"
+			mv "$${NEW_CSV}.new" "$${NEW_CSV}"
+		fi
+
+		platformCRD="$${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
+		if [[ $${platform} == "openshift" ]]; then
+			yq -riY  '.spec.preserveUnknownFields = false' $${platformCRD}
+		fi
+		$(MAKE) add-license-header FILE="$${platformCRD}"
+
+		if [ -n "$(TAG)" ]; then
+			echo "[INFO] Set tags in nightly OLM files"
+			sed -ri "s/(.*:\s?)$(RELEASE)([^-])?$$/\1$(TAG)\2/" "$${NEW_CSV}"
+		fi
+
+		YAML_CONTENT=$$(cat "$${NEW_CSV}")
+		if [[ $${platform} == "kubernetes" ]]; then
+			clusterPermLength=$$(echo "$${YAML_CONTENT}" | yq -r ".spec.install.spec.clusterPermissions[0].rules | length")
+			for (( i=0; i < $${clusterPermLength}; i++ )); do
+				apiGroupLength=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups | length')
+				if [ "$${apiGroupLength}" -gt 0 ]; then
+					for (( j=0; j < $${apiGroupLength}; j++ )); do
+						if [[ $$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups['$${j}']') =~ openshift.io$$ ]]; then
+							YAML_CONTENT=$$(echo "$${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.clusterPermissions[0].rules['$${i}'])' )
+							j=$${j}-1
+							i=$${i}-1
+							break
+						fi
+					done
+				fi
+			done
+
+			clusterPermLength=$$(echo "$${YAML_CONTENT}" | yq -r ".spec.install.spec.permissions[0].rules | length")
+			for (( i=0; i < $${clusterPermLength}; i++ )); do
+			apiGroupLength=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.permissions[0].rules['$${i}'].apiGroups | length')
+			if [ "$${apiGroupLength}" -gt 0 ]; then
+				for (( j=0; j < $${apiGroupLength}; j++ )); do
+				if [[ $$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.permissions[0].rules['$${i}'].apiGroups['$${j}']') =~ openshift.io$$ ]]; then
+					YAML_CONTENT=$$(echo "$${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.permissions[0].rules['$${i}'])' )
+					j=$${j}-1
+					i=$${i}-1
+					break
+				fi
+				done
+			fi
+			done
+		fi
+		echo "$${YAML_CONTENT}" > "$${NEW_CSV}"
+
+		if [[ $${platform} == "openshift" ]]; then
+			# Removes che-tls-secret-creator
+			index=0
+			while [[ $${index} -le 30 ]]
+			do
+				if [[ $$(cat $${NEW_CSV} | yq -r '.spec.install.spec.deployments[0].spec.template.spec.containers[0].env['$${index}'].name') == "RELATED_IMAGE_che_tls_secrets_creation_job" ]]; then
+					yq -rYSi 'del(.spec.install.spec.deployments[0].spec.template.spec.containers[0].env['$${index}'])' $${NEW_CSV}
+					break
+				fi
+				index=$$((index+1))
+			done
+		fi
+
+		# Fix sample
+		if [ "$${platform}" == "openshift" ]; then
+			echo "[INFO] Fix openshift sample"
+			sample=$$(yq -r ".metadata.annotations.\"alm-examples\"" "$${NEW_CSV}")
+			fixedSample=$$(echo "$${sample}" | yq -r ".[0] | del(.spec.k8s) | [.]" | sed -r 's/"/\\"/g')
+			# Update sample in the CSV
+			yq -rY " (.metadata.annotations.\"alm-examples\") = \"$${fixedSample}\"" "$${NEW_CSV}" > "$${NEW_CSV}.old"
+			mv "$${NEW_CSV}.old" "$${NEW_CSV}"
+		fi
+		if [ "$${platform}" == "kubernetes" ]; then
+			echo "[INFO] Fix kubernetes sample"
+			sample=$$(yq -r ".metadata.annotations.\"alm-examples\"" "$${NEW_CSV}")
+			fixedSample=$$(echo "$${sample}" | yq -r ".[0] | (.spec.k8s.ingressDomain) = \"\" | del(.spec.auth.openShiftoAuth) | [.]" | sed -r 's/"/\\"/g')
+			# Update sample in the CSV
+			yq -rY " (.metadata.annotations.\"alm-examples\") = \"$${fixedSample}\"" "$${NEW_CSV}" > "$${NEW_CSV}.old"
+			mv "$${NEW_CSV}.old" "$${NEW_CSV}"
+		fi
+
+		# set `app.kubernetes.io/managed-by` label
+		yq -riSY  '(.spec.install.spec.deployments[0].spec.template.metadata.labels."app.kubernetes.io/managed-by") = "olm"' "$${NEW_CSV}"
+
+		# set Pod Security Context Posture
+		yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostIPC") = false' "$${NEW_CSV}"
+		yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostNetwork") = false' "$${NEW_CSV}"
+		yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostPID") = false' "$${NEW_CSV}"
+		if [ "$${platform}" == "openshift" ]; then
+			yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."allowPrivilegeEscalation") = false' "$${NEW_CSV}"
+			yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."runAsNonRoot") = true' "$${NEW_CSV}"
+		fi
+
+		# Format code.
+		yq -rY "." "$${NEW_CSV}" > "$${NEW_CSV}.old"
+		mv "$${NEW_CSV}.old" "$${NEW_CSV}"	
+	done
+
+check-requirements:
+	# todo add more checks: docker, scopeo and so on
+	source olm/check-yq.sh
+
+	OPERATOR_SDK_BINARY=$(OPERATOR_SDK_BINARY)
+	if [ -z "$${OPERATOR_SDK_BINARY}" ]; then
+		OPERATOR_SDK_BINARY=$$(command -v operator-sdk)
+		if [[ ! -x "$${OPERATOR_SDK_BINARY}" ]]; then
+			echo "[ERROR] operator-sdk is not installed."
+			exit 1
+		fi
+	fi
+
+	operatorVersion=$$($${OPERATOR_SDK_BINARY} version)
+	REQUIRED_OPERATOR_SDK=$$(yq -r ".\"operator-sdk\"" "REQUIREMENTS")
+	[[ $$operatorVersion =~ .*$$REQUIRED_OPERATOR_SDK.* ]] || { echo "operator-sdk $${REQUIRED_OPERATOR_SDK} is required"; exit 1; }
+
+	if [ -z "$${GOROOT}" ]; then
+		echo "[ERROR] set up '\$$GOROOT' env variable to make operator-sdk working"
+		exit 1
+	fi
+
+update-deployment-yaml-images:
+	if [ -z $(UBI8_MINIMAL_IMAGE) ] || [ -z $(PLUGIN_BROKER_METADATA_IMAGE) ] || [ -z $(PLUGIN_BROKER_ARTIFACTS_IMAGE) ] || [ -z $(JWT_PROXY_IMAGE) ]; then
+		echo "[ERROR] Define required arguments: `UBI8_MINIMAL_IMAGE`, `PLUGIN_BROKER_METADATA_IMAGE`, `PLUGIN_BROKER_ARTIFACTS_IMAGE`, `JWT_PROXY_IMAGE`"
+		exit 1
+	fi
+	OPERATOR_YAML="config/manager/manager.yaml"
+	yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_pvc_jobs\") | .value ) = \"$(UBI8_MINIMAL_IMAGE)\"" $${OPERATOR_YAML}
+	yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_workspace_plugin_broker_metadata\") | .value ) = \"$(PLUGIN_BROKER_METADATA_IMAGE)\"" $${OPERATOR_YAML}
+	yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_workspace_plugin_broker_artifacts\") | .value ) = \"$(PLUGIN_BROKER_ARTIFACTS_IMAGE)\"" $${OPERATOR_YAML}
+	yq -riY "( .spec.template.spec.containers[] | select(.name == \"che-operator\").env[] | select(.name == \"RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image\") | .value ) = \"$(JWT_PROXY_IMAGE)\"" $${OPERATOR_YAML}
 	$(MAKE) add-license-header FILE="config/manager/manager.yaml"
+
+update-dockerfile-image:
+	if [ -z $(UBI8_MINIMAL_IMAGE) ]; then
+		echo "[ERROR] Define `UBI8_MINIMAL_IMAGE` argument"
+	fi
+	DOCKERFILE="Dockerfile"
+	sed -i 's|registry.access.redhat.com/ubi8-minimal:.*|'$(UBI8_MINIMAL_IMAGE)'|g' $${DOCKERFILE}
+
+update-resource-images:
+	# Detect newer images
+	echo "[INFO] Check update some base images..."
+	ubiMinimal8Version=$$(skopeo inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.version')
+	ubiMinimal8Release=$$(skopeo inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.release')
+	UBI8_MINIMAL_IMAGE="registry.access.redhat.com/ubi8-minimal:$${ubiMinimal8Version}-$${ubiMinimal8Release}"
+	skopeo inspect docker://$${UBI8_MINIMAL_IMAGE} > /dev/null
+
+	echo "[INFO] Check update broker and jwt proxy images..."
+	wget https://raw.githubusercontent.com/eclipse-che/che-server/main/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
+	PLUGIN_BROKER_METADATA_IMAGE=$$(cat /tmp/che.properties| grep "che.workspace.plugin_broker.metadata.image" | cut -d = -f2)
+	PLUGIN_BROKER_ARTIFACTS_IMAGE=$$(cat /tmp/che.properties | grep "che.workspace.plugin_broker.artifacts.image" | cut -d = -f2)
+	JWT_PROXY_IMAGE=$$(cat /tmp/che.properties | grep "che.server.secure_exposer.jwtproxy.image" | cut -d = -f2)
+
+	echo "[INFO] UBI base image               : $${UBI8_MINIMAL_IMAGE}"
+	echo "[INFO] Plugin broker metadata image : $${PLUGIN_BROKER_METADATA_IMAGE}"
+	echo "[INFO] Plugin broker artifacts image: $${PLUGIN_BROKER_ARTIFACTS_IMAGE}"
+	echo "[INFO] Plugin broker jwt proxy image: $${JWT_PROXY_IMAGE}"
+
+	# Update operator deployment images.
+	$(MAKE) update-deployment-yaml-images \
+	UBI8_MINIMAL_IMAGE="$${UBI8_MINIMAL_IMAGE}" \
+	PLUGIN_BROKER_METADATA_IMAGE=$${PLUGIN_BROKER_METADATA_IMAGE} \
+	PLUGIN_BROKER_ARTIFACTS_IMAGE=$${PLUGIN_BROKER_ARTIFACTS_IMAGE} \
+	JWT_PROXY_IMAGE=$${JWT_PROXY_IMAGE}
+
+	# Update che-operator Dockerfile
+	$(MAKE) update-dockerfile-image UBI8_MINIMAL_IMAGE="$${UBI8_MINIMAL_IMAGE}"
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
