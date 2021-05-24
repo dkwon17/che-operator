@@ -248,7 +248,6 @@ updateNighltyBundle() {
       incrementNightlyVersion "${platform}"
     fi
 
-
     cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests"
     cp -f "${ROOT_PROJECT_DIR}/deploy/crds/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests"
     cp -f "${ROOT_PROJECT_DIR}/deploy/crds/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests"
@@ -256,7 +255,6 @@ updateNighltyBundle() {
     CRD="${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
     if [[ $platform == "openshift" ]]; then
       yq -riSY  '.spec.preserveUnknownFields = false' $CRD
-      eval head -10 $CRD | cat - ${CRD} > tmp.crd && mv tmp.crd ${CRD}
     fi
 
     echo "Done for ${platform}"
@@ -317,6 +315,14 @@ updateNighltyBundle() {
     # Format code.
     yq -rY "." "${NEW_CSV}" > "${NEW_CSV}.old"
     mv "${NEW_CSV}.old" "${NEW_CSV}"
+
+    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/org_v1_che_crd.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests"
+    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests"
+    cp -f "${ROOT_PROJECT_DIR}/deploy/crds/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml" "${NIGHTLY_BUNDLE_PATH}/manifests"
+
+    addLicenseHeader "${NIGHTLY_BUNDLE_PATH}/manifests/che-operator.clusterserviceversion.yaml"
+    addLicenseHeader "${NIGHTLY_BUNDLE_PATH}/manifests/chemanagers.che.eclipse.org.CustomResourceDefinition.yaml"
+    addLicenseHeader "${NIGHTLY_BUNDLE_PATH}/manifests/devworkspaceroutings.controller.devfile.io.CustomResourceDefinition.yaml"
   done
 }
 

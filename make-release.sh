@@ -131,7 +131,7 @@ if ! grep -q "value: quay.io/eclipse/che-dashboard:$RELEASE" $filename; then
   fi
 
   # use ${RELEASE} instead of master
-  wget https://raw.githubusercontent.com/eclipse/che/${RELEASE}/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
+  wget https://raw.githubusercontent.com/eclipse-che/che-server/${RELEASE}/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
 
   if ! grep -q "value: quay.io/che-incubator/devworkspace-che-operator:$RELEASE" $filename; then
     echo "[ERROR] Unable to find che-keycloak image with version ${RELEASE} in the $filename"; exit 1

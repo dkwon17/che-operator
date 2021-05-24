@@ -1,3 +1,13 @@
+#
+#  Copyright (c) 2019-2021 Red Hat, Inc.
+#    This program and the accompanying materials are made
+#    available under the terms of the Eclipse Public License 2.0
+#    which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+#  SPDX-License-Identifier: EPL-2.0
+#
+#  Contributors:
+#    Red Hat, Inc. - initial API and implementation
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -48,13 +58,16 @@ spec:
               gatewayDisabled:
                 description: "GatewayDisabled enables or disables routing of the url
                   rewrite supporting devworkspace endpoints through a common gateway
-                  (the hostname of which is defined by the GatewayHost). \n Default
-                  value is \"false\" meaning that the gateway is enabled. \n If set
+                  (the hostname of which is defined by the GatewayHost). 
+ Default
+                  value is \"false\" meaning that the gateway is enabled. 
+ If set
                   to false (i.e. the gateway is enabled), endpoints marked using the
                   \"urlRewriteSupported\" attribute are exposed on unique subpaths
                   of the GatewayHost, while the rest of the devworkspace endpoints
                   are exposed on subdomains of the RoutingSuffix specified by the
-                  DevWorkspaceRouting of the devworkspace. \n If set to true (i.e.
+                  DevWorkspaceRouting of the devworkspace. 
+ If set to true (i.e.
                   the gateway is disabled), all endpoints are deployed on subdomains
                   of the RoutingSuffix."
                 type: boolean
@@ -62,7 +75,8 @@ spec:
                 description: "GatewayHost is the full host name used to expose devworkspace
                   endpoints that support url rewriting reverse proxy. See the GatewayDisabled
                   attribute for a more detailed description of where and how are devworkspace
-                  endpoints exposed in various configurations. \n This attribute is
+                  endpoints exposed in various configurations. 
+ This attribute is
                   mandatory on Kubernetes, optional on OpenShift."
                 type: string
               gatewayImage:
@@ -82,7 +96,8 @@ spec:
                       on the generated ingresses. This can be used to configure the
                       ingress class and the ingress-controller-specific behavior for
                       both the gateway and the ingresses created to expose the Devworkspace
-                      component endpoints. When not specified, this defaults to: \n
+                      component endpoints. When not specified, this defaults to: 
+
                       \    kubernetes.io/ingress.class:                       \"nginx\"
                       \    nginx.ingress.kubernetes.io/proxy-read-timeout:    \"3600\",
                       \    nginx.ingress.kubernetes.io/proxy-connect-timeout: \"3600\",
@@ -96,7 +111,15 @@ spec:
                   the same namespace as the CheManager CR and is used for both the
                   gateway and all devworkspace endpoints. In case of the devworkspace
                   endpoints, the secret is copied to the namespace of the devworkspace.
-                  \n The secret has to be of type \"tls\"."
+                  
+ The secret has to be of type \"tls\"."
+                type: string
+              workspaceBaseDomain:
+                description: The workspace endpoints that need to be deployed on a
+                  subdomain will be deployed on subdomains of this base domain. This
+                  is mandatory on Kubernetes. On OpenShift, an attempt is made to
+                  automatically figure out the base domain of the routes. The resolved
+                  value of this property is written to the status.
                 type: string
             type: object
           status:
@@ -117,6 +140,12 @@ spec:
               phase:
                 description: Phase is the phase in which the manager as a whole finds
                   itself in.
+                type: string
+              workspaceBaseDomain:
+                description: The resolved workspace base domain. This is either the
+                  copy of the explicitly defined property of the same name in the
+                  spec or, if it is undefined in the spec and we're running on OpenShift,
+                  the automatically resolved basedomain for routes.
                 type: string
             type: object
         type: object
