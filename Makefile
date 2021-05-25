@@ -336,7 +336,7 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 	GENERATED_CRD_NAME=org.eclipse.che_checlusters.yaml
 	DESIRED_CRD_NAME=org_v1_che_crd.yaml
 
-	$(OPERATOR_SDK_BINARY) generate kustomize manifests -q
+	# $(OPERATOR_SDK_BINARY) generate kustomize manifests -q
 	# cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG) && cd ../..
 	# $(KUSTOMIZE) build config/platforms/$(platform) | \
 
@@ -436,7 +436,7 @@ get-nightly-version-increment:
 
 	echo "$${incrementPart}"
 
-update-resources: check-requirements generate manifests kustomize update-resource-images
+update-resources: check-requirements update-resource-images
 	for platform in 'kubernetes' 'openshift'
 	do
 		if [ -z "$(NO_INCREMENT)" ]; then
