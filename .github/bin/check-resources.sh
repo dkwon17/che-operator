@@ -65,10 +65,10 @@ checkCRDs() {
 
 checkNightlyOlmBundle() {
   # files to check
-  local CSV_FILE_KUBERNETES="${ROOT_PROJECT_DIR}/bundle/nightly/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
-  local CSV_FILE_OPENSHIFT="${ROOT_PROJECT_DIR}/bundle/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
-  local CRD_FILE_KUBERNETES="${ROOT_PROJECT_DIR}/bundle/nightly/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml"
-  local CRD_FILE_OPENSHIFT="${ROOT_PROJECT_DIR}/bundle/nightly/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml"
+  local CSV_FILE_KUBERNETES="bundle/nightly/eclipse-che-preview-kubernetes/manifests/che-operator.clusterserviceversion.yaml"
+  local CSV_FILE_OPENSHIFT="bundle/nightly/eclipse-che-preview-openshift/manifests/che-operator.clusterserviceversion.yaml"
+  local CRD_FILE_KUBERNETES="bundle/nightly/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml"
+  local CRD_FILE_OPENSHIFT="bundle/nightly/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml"
 
   changedFiles=($(git diff --name-only))
   if [[ " ${changedFiles[*]} " =~ $CSV_FILE_OPENSHIFT ]] || [[ " ${changedFiles[*]} " =~ $CSV_FILE_OPENSHIFT ]] || \
@@ -83,7 +83,7 @@ checkNightlyOlmBundle() {
 
 checkDockerfile() {
   # files to check
-  local Dockerfile="${ROOT_PROJECT_DIR}/Dockerfile"
+  local Dockerfile="Dockerfile"
 
   changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
   if [[ " ${changedFiles[*]} " =~ $Dockerfile ]]; then
@@ -97,7 +97,7 @@ checkDockerfile() {
 
 checkOperatorYaml() {
   # files to check
-  local OperatorYaml="${ROOT_PROJECT_DIR}/config/manager/manager.yaml"
+  local OperatorYaml="config/manager/manager.yaml"
 
   changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
   if [[ " ${changedFiles[*]} " =~ $OperatorYaml ]]; then
