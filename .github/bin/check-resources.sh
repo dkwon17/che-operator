@@ -53,6 +53,7 @@ checkCRDs() {
 
     changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
     echo "===$changedFiles"
+    $(cd ${ROOT_PROJECT_DIR}; git diff)
 
     # Check if there are any difference in the crds. If yes, then fail check.
     if [[ " ${changedFiles[*]} " =~ $CRD_V1 ]] || [[ " ${changedFiles[*]} " =~ $CRD_V1BETA1 ]]; then
