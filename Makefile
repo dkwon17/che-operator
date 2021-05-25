@@ -326,7 +326,8 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 		exit 1
 	fi
 	echo "[INFO] Make bundle $${platform}"
-	echo $$(pwd)
+	# todo
+	echo $$(pwd) 
 
 	BUNDLE_PACKAGE="eclipse-che-preview-$(platform)"
 	BUNDLE_DIR="bundle/$(DEFAULT_CHANNEL)/$${BUNDLE_PACKAGE}"
@@ -336,8 +337,9 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 	DESIRED_CRD_NAME=org_v1_che_crd.yaml
 
 	$(OPERATOR_SDK_BINARY) generate kustomize manifests -q
-	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG) && cd ../..
-	$(KUSTOMIZE) build config/platforms/$(platform) | \
+	# cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG) && cd ../..
+	# $(KUSTOMIZE) build config/platforms/$(platform) | \
+
 	$(OPERATOR_SDK_BINARY) generate bundle \
 	-q --overwrite --version $(VERSION) \
 	--package $${BUNDLE_PACKAGE} \
