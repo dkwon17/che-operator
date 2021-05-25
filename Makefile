@@ -141,7 +141,14 @@ add-license-header:
 		exit 1
 	fi
 
-	echo -e "#
+	fileHeader=$$(head -10 $(FILE) | tr --delete '\n' | tr --delete '\r')
+	licenseMarker="Copyright (c)"
+
+	case "$${fileHeader}" in
+		*$${licenseMarker}*) return ;;
+	esac;
+
+	echo "#
 		#  Copyright (c) 2019-2021 Red Hat, Inc.
 		#    This program and the accompanying materials are made
 		#    available under the terms of the Eclipse Public License 2.0
@@ -325,9 +332,6 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 		echo "[INFO] You must specify 'platform' macros. For example: `make bundle platform=kubernetes`"
 		exit 1
 	fi
-	echo "[INFO] Make bundle $${platform}"
-	# todo
-	echo $$(pwd) 
 
 	BUNDLE_PACKAGE="eclipse-che-preview-$(platform)"
 	BUNDLE_DIR="bundle/$(DEFAULT_CHANNEL)/$${BUNDLE_PACKAGE}"
@@ -336,10 +340,9 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 	GENERATED_CRD_NAME=org.eclipse.che_checlusters.yaml
 	DESIRED_CRD_NAME=org_v1_che_crd.yaml
 
-	# $(OPERATOR_SDK_BINARY) generate kustomize manifests -q
-	# cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG) && cd ../..
-	# $(KUSTOMIZE) build config/platforms/$(platform) | \
-
+	$(OPERATOR_SDK_BINARY) generate kustomize manifests -q
+	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG) && cd ../..
+	$(KUSTOMIZE) build config/platforms/$(platform) | \
 	$(OPERATOR_SDK_BINARY) generate bundle \
 	-q --overwrite --version $(VERSION) \
 	--package $${BUNDLE_PACKAGE} \
@@ -436,7 +439,7 @@ get-nightly-version-increment:
 
 	echo "$${incrementPart}"
 
-update-resources: check-requirements update-resource-images
+update-resources: check-requirements generate manifests kustomize update-resource-images
 	for platform in 'kubernetes' 'openshift'
 	do
 		if [ -z "$(NO_INCREMENT)" ]; then
@@ -455,109 +458,121 @@ update-resources: check-requirements update-resource-images
 
 		$(MAKE) bundle "platform=$${platform}" "VERSION=$${newNightlyBundleVersion}"
 
-		# containerImage=$$(sed -n 's|^ *image: *\([^ ]*/che-operator:[^ ]*\) *|\1|p' $${NEW_CSV})
-		# echo "[INFO] Updating new package version fields:"
-		# echo "[INFO]        - containerImage => $${containerImage}"
-		# sed -e "s|containerImage:.*$$|containerImage: $${containerImage}|" "$${NEW_CSV}" > "$${NEW_CSV}.new"
-		# mv "$${NEW_CSV}.new" "$${NEW_CSV}"
+		containerImage=$$(sed -n 's|^ *image: *\([^ ]*/che-operator:[^ ]*\) *|\1|p' $${NEW_CSV})
+		echo "[INFO] Updating new package version fields:"
+		echo "[INFO]        - containerImage => $${containerImage}"
+		sed -e "s|containerImage:.*$$|containerImage: $${containerImage}|" "$${NEW_CSV}" > "$${NEW_CSV}.new"
+		mv "$${NEW_CSV}.new" "$${NEW_CSV}"
 
-		# if [ "$(NO_DATE_UPDATE)" == "true" ]; then
-		# 	echo "[INFO]        - createdAt => $${createdAtOld}"
-		# 	sed -e "s/createdAt:.*$$/createdAt: \"$${createdAtOld}\"/" "$${NEW_CSV}" > "$${NEW_CSV}.new"
-		# 	mv "$${NEW_CSV}.new" "$${NEW_CSV}"
-		# fi
+		if [ "$(NO_DATE_UPDATE)" = true ]; then
+			echo "[INFO]        - createdAt => $${createdAtOld}"
+			sed -e "s/createdAt:.*$$/createdAt: \"$${createdAtOld}\"/" "$${NEW_CSV}" > "$${NEW_CSV}.new"
+			mv "$${NEW_CSV}.new" "$${NEW_CSV}"
+		fi
 
-		# platformCRD="$${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
-		# if [ $${platform} == "openshift" ]; then
-		# 	yq -riY  '.spec.preserveUnknownFields = false' $${platformCRD}
-		# fi
-		# $(MAKE) add-license-header FILE="$${platformCRD}"
+		platformCRD="$${NIGHTLY_BUNDLE_PATH}/manifests/org_v1_che_crd.yaml"
+		if [ "$${platform}" = "openshift" ]; then
+			yq -riY  '.spec.preserveUnknownFields = false' $${platformCRD}
+		fi
+		$(MAKE) add-license-header FILE="$${platformCRD}"
 
-		# if [ -n "$(TAG)" ]; then
-		# 	echo "[INFO] Set tags in nightly OLM files"
-		# 	sed -ri "s/(.*:\s?)$(RELEASE)([^-])?$$/\1$(TAG)\2/" "$${NEW_CSV}"
-		# fi
+		if [ -n "$(TAG)" ]; then
+			echo "[INFO] Set tags in nightly OLM files"
+			sed -ri "s/(.*:\s?)$(RELEASE)([^-])?$$/\1$(TAG)\2/" "$${NEW_CSV}"
+		fi
 
-		# YAML_CONTENT=$$(cat "$${NEW_CSV}")
-		# if [ $${platform} == "kubernetes" ]; then
-		# 	clusterPermLength=$$(echo "$${YAML_CONTENT}" | yq -r ".spec.install.spec.clusterPermissions[0].rules | length")
-		# 	for (( i=0; i < $${clusterPermLength}; i++ )); do
-		# 		apiGroupLength=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups | length')
-		# 		if [ "$${apiGroupLength}" -gt 0 ]; then
-		# 			for (( j=0; j < $${apiGroupLength}; j++ )); do
-		# 				if [[ $$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups['$${j}']') =~ openshift.io$$ ]]; then
-		# 					YAML_CONTENT=$$(echo "$${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.clusterPermissions[0].rules['$${i}'])' )
-		# 					j=$${j}-1
-		# 					i=$${i}-1
-		# 					break
-		# 				fi
-		# 			done
-		# 		fi
-		# 	done
+		YAML_CONTENT=$$(cat "$${NEW_CSV}")
+		if [ $${platform} = "kubernetes" ]; then
+			clusterPermLength=$$(echo "$${YAML_CONTENT}" | yq -r ".spec.install.spec.clusterPermissions[0].rules | length")
+			i=0
+			while [ "$${i}" -lt "$${clusterPermLength}" ]; do
+				apiGroupLength=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups | length')
+				if [ "$${apiGroupLength}" -gt 0 ]; then
+					j=0
+					while [ "$${j}" -lt "$${apiGroupLength}" ]; do
+						apiGroup=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.clusterPermissions[0].rules['$${i}'].apiGroups['$${j}']')
+						case $${apiGroup} in *openshift.io)
+							YAML_CONTENT=$$(echo "$${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.clusterPermissions[0].rules['$${i}'])' )
+							j=$$((j-1))
+							i=$$((i-1))
+							break
+							;;
+						esac;
+						j=$$((i+1))
+					done
+				fi
+				i=$$((i+1))
+			done
 
-		# 	clusterPermLength=$$(echo "$${YAML_CONTENT}" | yq -r ".spec.install.spec.permissions[0].rules | length")
-		# 	for (( i=0; i < $${clusterPermLength}; i++ )); do
-		# 	apiGroupLength=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.permissions[0].rules['$${i}'].apiGroups | length')
-		# 	if [ "$${apiGroupLength}" -gt 0 ]; then
-		# 		for (( j=0; j < $${apiGroupLength}; j++ )); do
-		# 		if [[ $$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.permissions[0].rules['$${i}'].apiGroups['$${j}']') =~ openshift.io$$ ]]; then
-		# 			YAML_CONTENT=$$(echo "$${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.permissions[0].rules['$${i}'])' )
-		# 			j=$${j}-1
-		# 			i=$${i}-1
-		# 			break
-		# 		fi
-		# 		done
-		# 	fi
-		# 	done
-		# fi
-		# echo "$${YAML_CONTENT}" > "$${NEW_CSV}"
+			permLength=$$(echo "$${YAML_CONTENT}" | yq -r ".spec.install.spec.permissions[0].rules | length")
+			i=0
+			while [ "$${i}" -lt "$${permLength}" ]; do
+				apiGroupLength=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.permissions[0].rules['$${i}'].apiGroups | length')
+				if [ "$${apiGroupLength}" -gt 0 ]; then
+					j=0
+					while [ "$${j}" -lt "$${apiGroupLength}" ]; do
+						apiGroup=$$(echo "$${YAML_CONTENT}" | yq -r '.spec.install.spec.permissions[0].rules['$${i}'].apiGroups['$${j}']')
+						case $${apiGroup} in *openshift.io)
+							YAML_CONTENT=$$(echo "$${YAML_CONTENT}" | yq -rY 'del(.spec.install.spec.permissions[0].rules['$${i}'])' )
+							j=$$((j-1))
+							i=$$((i-1))
+							break
+							;;
+						esac;
+						j=$$((i+1))
+					done
+				fi
+				i=$$((i+1))
+			done
+		fi
+		echo "$${YAML_CONTENT}" > "$${NEW_CSV}"
 
-		# if [ $${platform} == "openshift" ]; then
-		# 	# Removes che-tls-secret-creator
-		# 	index=0
-		# 	while [[ $${index} -le 30 ]]
-		# 	do
-		# 		if [[ $$(cat $${NEW_CSV} | yq -r '.spec.install.spec.deployments[0].spec.template.spec.containers[0].env['$${index}'].name') == "RELATED_IMAGE_che_tls_secrets_creation_job" ]]; then
-		# 			yq -rYSi 'del(.spec.install.spec.deployments[0].spec.template.spec.containers[0].env['$${index}'])' $${NEW_CSV}
-		# 			break
-		# 		fi
-		# 		index=$$((index+1))
-		# 	done
-		# fi
+		if [ $${platform} = "openshift" ]; then
+			# Removes che-tls-secret-creator
+			index=0
+			while [ $${index} -le 30 ]
+			do
+				if [ $$(cat $${NEW_CSV} | yq -r '.spec.install.spec.deployments[0].spec.template.spec.containers[0].env['$${index}'].name') = "RELATED_IMAGE_che_tls_secrets_creation_job" ]; then
+					yq -rYSi 'del(.spec.install.spec.deployments[0].spec.template.spec.containers[0].env['$${index}'])' $${NEW_CSV}
+					break
+				fi
+				index=$$((index+1))
+			done
+		fi
 
 		# Fix sample
-		# if [ "$${platform}" == "openshift" ]; then
-		# 	echo "[INFO] Fix openshift sample"
-		# 	sample=$$(yq -r ".metadata.annotations.\"alm-examples\"" "$${NEW_CSV}")
-		# 	fixedSample=$$(echo "$${sample}" | yq -r ".[0] | del(.spec.k8s) | [.]" | sed -r 's/"/\\"/g')
-		# 	# Update sample in the CSV
-		# 	yq -rY " (.metadata.annotations.\"alm-examples\") = \"$${fixedSample}\"" "$${NEW_CSV}" > "$${NEW_CSV}.old"
-		# 	mv "$${NEW_CSV}.old" "$${NEW_CSV}"
-		# fi
-		# if [ "$${platform}" == "kubernetes" ]; then
-		# 	echo "[INFO] Fix kubernetes sample"
-		# 	sample=$$(yq -r ".metadata.annotations.\"alm-examples\"" "$${NEW_CSV}")
-		# 	fixedSample=$$(echo "$${sample}" | yq -r ".[0] | (.spec.k8s.ingressDomain) = \"\" | del(.spec.auth.openShiftoAuth) | [.]" | sed -r 's/"/\\"/g')
-		# 	# Update sample in the CSV
-		# 	yq -rY " (.metadata.annotations.\"alm-examples\") = \"$${fixedSample}\"" "$${NEW_CSV}" > "$${NEW_CSV}.old"
-		# 	mv "$${NEW_CSV}.old" "$${NEW_CSV}"
-		# fi
+		if [ "$${platform}" = "openshift" ]; then
+			echo "[INFO] Fix openshift sample"
+			sample=$$(yq -r ".metadata.annotations.\"alm-examples\"" "$${NEW_CSV}")
+			fixedSample=$$(echo "$${sample}" | yq -r ".[0] | del(.spec.k8s) | [.]" | sed -r 's/"/\\"/g')
+			# Update sample in the CSV
+			yq -rY " (.metadata.annotations.\"alm-examples\") = \"$${fixedSample}\"" "$${NEW_CSV}" > "$${NEW_CSV}.old"
+			mv "$${NEW_CSV}.old" "$${NEW_CSV}"
+		fi
+		if [ "$${platform}" = "kubernetes" ]; then
+			echo "[INFO] Fix kubernetes sample"
+			sample=$$(yq -r ".metadata.annotations.\"alm-examples\"" "$${NEW_CSV}")
+			fixedSample=$$(echo "$${sample}" | yq -r ".[0] | (.spec.k8s.ingressDomain) = \"\" | del(.spec.auth.openShiftoAuth) | [.]" | sed -r 's/"/\\"/g')
+			# Update sample in the CSV
+			yq -rY " (.metadata.annotations.\"alm-examples\") = \"$${fixedSample}\"" "$${NEW_CSV}" > "$${NEW_CSV}.old"
+			mv "$${NEW_CSV}.old" "$${NEW_CSV}"
+		fi
 
-		# # set `app.kubernetes.io/managed-by` label
-		# yq -riSY  '(.spec.install.spec.deployments[0].spec.template.metadata.labels."app.kubernetes.io/managed-by") = "olm"' "$${NEW_CSV}"
+		# set `app.kubernetes.io/managed-by` label
+		yq -riSY  '(.spec.install.spec.deployments[0].spec.template.metadata.labels."app.kubernetes.io/managed-by") = "olm"' "$${NEW_CSV}"
 
-		# # set Pod Security Context Posture
-		# yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostIPC") = false' "$${NEW_CSV}"
-		# yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostNetwork") = false' "$${NEW_CSV}"
-		# yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostPID") = false' "$${NEW_CSV}"
-		# if [ "$${platform}" == "openshift" ]; then
-		# 	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."allowPrivilegeEscalation") = false' "$${NEW_CSV}"
-		# 	yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."runAsNonRoot") = true' "$${NEW_CSV}"
-		# fi
+		# set Pod Security Context Posture
+		yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostIPC") = false' "$${NEW_CSV}"
+		yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostNetwork") = false' "$${NEW_CSV}"
+		yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostPID") = false' "$${NEW_CSV}"
+		if [ "$${platform}" = "openshift" ]; then
+			yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."allowPrivilegeEscalation") = false' "$${NEW_CSV}"
+			yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec.containers[0].securityContext."runAsNonRoot") = true' "$${NEW_CSV}"
+		fi
 
 		# Format code.
-		# yq -rY "." "$${NEW_CSV}" > "$${NEW_CSV}.old"
-		# mv "$${NEW_CSV}.old" "$${NEW_CSV}"
+		yq -rY "." "$${NEW_CSV}" > "$${NEW_CSV}.old"
+		mv "$${NEW_CSV}.old" "$${NEW_CSV}"
 	done
 
 check-requirements:
@@ -576,14 +591,9 @@ check-requirements:
 	operatorVersion=$$($${OPERATOR_SDK_BINARY} version)
 	REQUIRED_OPERATOR_SDK=$$(yq -r ".\"operator-sdk\"" "REQUIREMENTS")
 	case "$$operatorVersion" in 
-	*$$REQUIRED_OPERATOR_SDK*) ;;
-	*) echo "[ERROR] operator-sdk $${REQUIRED_OPERATOR_SDK} is required"; exit 1 ;;
+		*$$REQUIRED_OPERATOR_SDK*) ;;
+		*) echo "[ERROR] operator-sdk $${REQUIRED_OPERATOR_SDK} is required"; exit 1 ;;
 	esac
-
-	if [ -z "$${GOROOT}" ]; then
-		echo "[ERROR] set up '\$$GOROOT' env variable to make operator-sdk working"
-		exit 1
-	fi
 
 update-deployment-yaml-images:
 	if [ -z $(UBI8_MINIMAL_IMAGE) ] || [ -z $(PLUGIN_BROKER_METADATA_IMAGE) ] || [ -z $(PLUGIN_BROKER_ARTIFACTS_IMAGE) ] || [ -z $(JWT_PROXY_IMAGE) ]; then
