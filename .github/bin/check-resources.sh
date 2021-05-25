@@ -52,6 +52,7 @@ checkCRDs() {
     local CRD_V1BETA1="config/crd/bases/org_v1_che_crd.yaml"
 
     changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
+    echo "===$changedFiles"
 
     # Check if there are any difference in the crds. If yes, then fail check.
     if [[ " ${changedFiles[*]} " =~ $CRD_V1 ]] || [[ " ${changedFiles[*]} " =~ $CRD_V1BETA1 ]]; then
@@ -70,7 +71,7 @@ checkNightlyOlmBundle() {
   local CRD_FILE_KUBERNETES="bundle/nightly/eclipse-che-preview-kubernetes/manifests/org_v1_che_crd.yaml"
   local CRD_FILE_OPENSHIFT="bundle/nightly/eclipse-che-preview-openshift/manifests/org_v1_che_crd.yaml"
 
-  changedFiles=($(git diff --name-only))
+  changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
   if [[ " ${changedFiles[*]} " =~ $CSV_FILE_OPENSHIFT ]] || [[ " ${changedFiles[*]} " =~ $CSV_FILE_OPENSHIFT ]] || \
      [[ " ${changedFiles[*]} " =~ $CRD_FILE_KUBERNETES ]] || [[ " ${changedFiles[*]} " =~ $CRD_FILE_OPENSHIFT ]]; then
     echo "[ERROR] Nighlty bundle is not up to date: ${BASH_REMATCH}"
