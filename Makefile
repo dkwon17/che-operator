@@ -114,25 +114,28 @@ download-operator-sdk:
 	chmod +x $${OP_SDK_PATH}
 	echo "[INFO] operator-sdk is ready."
 
+removeRequiredAttribute: SHELL := /bin/bash
 removeRequiredAttribute:
 	REQUIRED=false
 
-	while IFS= read -r line;
+	while IFS= read -r line
 	do
-		if [ $${REQUIRED} = true ]; then
-			case "$${line}" in
-			*"- "*) continue  ;;
-			*)      REQUIRED=false
-			esac
+		if [[ $$REQUIRED == true ]]; then
+			if [[ $$line == *"- "* ]]; then
+				continue
+			else
+				REQUIRED=false
+			fi
 		fi
 
-		case "$${line}" in
-		*"required:"*) REQUIRED=true; continue  ;;
-		*)
-		esac
+		if [[ $$line == *"required:"* ]]; then
+			REQUIRED=true
+			continue
+		fi
 
-		echo  "$${line}" >> $${filePath}.tmp
-	done < "$${filePath}"
+		echo  "$$line" >> $$filePath.tmp
+	done < "$$filePath"
+
 	mv $${filePath}.tmp $${filePath}
 
 add-license-header:
@@ -157,8 +160,9 @@ add-license-header:
 		#  SPDX-License-Identifier: EPL-2.0
 		#
 		#  Contributors:
-		#    Red Hat, Inc. - initial API and implementation
-	$$(cat $(FILE))" > $(FILE)
+		#    Red Hat, Inc. - initial API and implementation" > $(FILE).tmp
+	cat $(FILE) >> $(FILE).tmp
+	mv $(FILE).tmp $(FILE)
 
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	# Generate CRDs v1 and v2

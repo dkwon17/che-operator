@@ -49,12 +49,9 @@ checkCRDs() {
 
     # files to check
     local CRD_V1="config/crd/bases/org_v1_che_crd.yaml"
-    local CRD_V1BETA1="config/crd/bases/org_v1_che_crd.yaml"
+    local CRD_V1BETA1="config/crd/bases/org_v1_che_crd-v1beta1.yaml"
 
     changedFiles=($(cd ${ROOT_PROJECT_DIR}; git diff --name-only))
-    echo "===$changedFiles"
-    $(cd ${ROOT_PROJECT_DIR}; git diff)
-
     # Check if there are any difference in the crds. If yes, then fail check.
     if [[ " ${changedFiles[*]} " =~ $CRD_V1 ]] || [[ " ${changedFiles[*]} " =~ $CRD_V1BETA1 ]]; then
         echo "[ERROR] CRD file is not up to date: ${BASH_REMATCH}"
