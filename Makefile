@@ -431,7 +431,7 @@ get-nightly-version-increment:
 	incrementPart="$${versionWithoutNightly#*-}"
 
 	echo "$${incrementPart}"
- 
+
 update-resources: check-requirements generate manifests kustomize update-resource-images
 	for platform in 'kubernetes' 'openshift'
 	do
@@ -558,7 +558,7 @@ update-resources: check-requirements generate manifests kustomize update-resourc
 
 check-requirements:
 	# todo add more checks: docker, scopeo and so on
-	source olm/check-yq.sh
+	. olm/check-yq.sh
 
 	OPERATOR_SDK_BINARY=$(OPERATOR_SDK_BINARY)
 	if [ -z "$${OPERATOR_SDK_BINARY}" ]; then
@@ -571,7 +571,10 @@ check-requirements:
 
 	operatorVersion=$$($${OPERATOR_SDK_BINARY} version)
 	REQUIRED_OPERATOR_SDK=$$(yq -r ".\"operator-sdk\"" "REQUIREMENTS")
-	[[ $$operatorVersion =~ .*$$REQUIRED_OPERATOR_SDK.* ]] || { echo "operator-sdk $${REQUIRED_OPERATOR_SDK} is required"; exit 1; }
+	case "$$operatorVersion" in 
+	*$$REQUIRED_OPERATOR_SDK*) ;;
+	*) echo "[ERROR] operator-sdk $${REQUIRED_OPERATOR_SDK} is required"; exit 1 ;;
+	esac
 
 	if [ -z "$${GOROOT}" ]; then
 		echo "[ERROR] set up '\$$GOROOT' env variable to make operator-sdk working"
