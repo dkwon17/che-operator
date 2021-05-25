@@ -435,9 +435,9 @@ get-nightly-version-increment:
 update-resources: check-requirements generate manifests kustomize update-resource-images
 	for platform in 'kubernetes' 'openshift'
 	do
-		# if [ -z "$(NO_INCREMENT)" ]; then
-		# 	$(MAKE) increment-nightly-version platform="$${platform}"
-		# fi
+		if [ -z "$(NO_INCREMENT)" ]; then
+			$(MAKE) increment-nightly-version platform="$${platform}"
+		fi
 
 		echo "[INFO] Updating OperatorHub bundle for platform '$${platform}'"
 
