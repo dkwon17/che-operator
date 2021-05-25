@@ -326,6 +326,7 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 		exit 1
 	fi
 	echo "[INFO] Make bundle $${platform}"
+	echo $$(pwd)
 
 	BUNDLE_PACKAGE="eclipse-che-preview-$(platform)"
 	BUNDLE_DIR="bundle/$(DEFAULT_CHANNEL)/$${BUNDLE_PACKAGE}"
