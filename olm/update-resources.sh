@@ -13,7 +13,8 @@
 # Generated CRDs based on pkg/apis/org/v1/che_types.go:
 # - deploy/crds/org_v1_che_crd.yaml
 # - deploy/crds/org_v1_che_crd-v1beta1.yaml
-
+set -x
+echo hi
 set -e
 
 unset UBI8_MINIMAL_IMAGE
@@ -35,6 +36,7 @@ checkOperatorSDKVersion() {
 
   local operatorVersion=$("${OPERATOR_SDK_BINARY}" version)
   REQUIRED_OPERATOR_SDK=$(yq -r ".\"operator-sdk\"" "${ROOT_PROJECT_DIR}/REQUIREMENTS")
+  echo .*${REQUIRED_OPERATOR_SDK}.*
   [[ $operatorVersion =~ .*${REQUIRED_OPERATOR_SDK}.* ]] || { echo "operator-sdk ${REQUIRED_OPERATOR_SDK} is required"; exit 1; }
 
   if [ -z "${GOROOT}" ]; then
@@ -86,10 +88,10 @@ removeRequiredAttribute() {
 }
 
 detectImages() {
-  ubiMinimal8Version=$(skopeo inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.version')
-  ubiMinimal8Release=$(skopeo inspect docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.release')
+  ubiMinimal8Version=$(skopeo inspect --override-os linux docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.version')
+  ubiMinimal8Release=$(skopeo inspect --override-os linux docker://registry.access.redhat.com/ubi8-minimal:latest | jq -r '.Labels.release')
   UBI8_MINIMAL_IMAGE="registry.access.redhat.com/ubi8-minimal:"$ubiMinimal8Version"-"$ubiMinimal8Release
-  skopeo inspect docker://$UBI8_MINIMAL_IMAGE > /dev/null
+  skopeo inspect --override-os linux docker://$UBI8_MINIMAL_IMAGE > /dev/null
 
   wget https://raw.githubusercontent.com/eclipse-che/che-server/main/assembly/assembly-wsmaster-war/src/main/webapp/WEB-INF/classes/che/che.properties -q -O /tmp/che.properties
   PLUGIN_BROKER_METADATA_IMAGE=$(cat /tmp/che.properties| grep "che.workspace.plugin_broker.metadata.image" | cut -d = -f2)
@@ -113,7 +115,7 @@ updateOperatorYaml() {
 
 updateDockerfile() {
   DOCKERFILE="${ROOT_PROJECT_DIR}/Dockerfile"
-  sed -i 's|registry.access.redhat.com/ubi8-minimal:[^\s]* |'${UBI8_MINIMAL_IMAGE}' |g' $DOCKERFILE
+  sed -i 's|registry.access.redhat.com/ubi8-minimal:.*|'${UBI8_MINIMAL_IMAGE}'|g' $DOCKERFILE
 }
 
 updateNighltyBundle() {
@@ -222,7 +224,7 @@ updateNighltyBundle() {
 
     # set `app.kubernetes.io/managed-by` label
     yq -riSY  '(.spec.install.spec.deployments[0].spec.template.metadata.labels."app.kubernetes.io/managed-by") = "olm"' "${NEW_CSV}"
-
+    
     # set Pod Security Context Posture
     yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostIPC") = false' "${NEW_CSV}"
     yq -riSY  '(.spec.install.spec.deployments[0].spec.template.spec."hostNetwork") = false' "${NEW_CSV}"
