@@ -13,6 +13,9 @@ package deploy
 
 import (
 	"context"
+	goerror "errors"
+	"os"
+	"strings"
 	"time"
 
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/pkg/apis/che/v1alpha1"
@@ -25,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -126,6 +130,8 @@ func ReconcileImagePuller(ctx *DeployContext) (reconcile.Result, error) {
 						}
 						return reconcile.Result{Requeue: true}, nil
 					}
+
+					AddRelatedImages(ctx)
 
 					logrus.Infof("Creating KubernetesImagePuller for CheCluster %v", ctx.CheCluster.Name)
 					createdImagePuller, err := CreateKubernetesImagePuller(ctx)
@@ -377,6 +383,77 @@ func UpdateImagePullerSpecIfEmpty(ctx *DeployContext) (orgv1.CheClusterSpecImage
 		return ctx.CheCluster.Spec.ImagePuller, err
 	}
 	return ctx.CheCluster.Spec.ImagePuller, nil
+}
+
+func AddRelatedImages(ctx *DeployContext) {
+	relatedImages := []string{}
+	for _, env := range os.Environ() {
+		if !strings.HasPrefix(env, "RELATED_IMAGE_") {
+			continue
+		}
+
+		keyValue := strings.Split(env, "=")
+		key := keyValue[0]
+		value := keyValue[1]
+
+		if ShouldAddImage(key) {
+			key = key[len("RELATED_IMAGE_"):]
+			key, err := ConvertToRFC1123(key)
+			if err != nil {
+				logrus.Errorf(err.Error())
+				continue
+			}
+			relatedImages = append(relatedImages, key+"="+value)
+		}
+	}
+
+	if len(ctx.CheCluster.Spec.ImagePuller.Spec.Images) != 0 &&
+		!strings.HasSuffix(ctx.CheCluster.Spec.ImagePuller.Spec.Images, ";") {
+		ctx.CheCluster.Spec.ImagePuller.Spec.Images += ";"
+	}
+
+	ctx.CheCluster.Spec.ImagePuller.Spec.Images += strings.Join(relatedImages[:], ";")
+	ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster, &client.UpdateOptions{})
+}
+
+func ShouldAddImage(key string) bool {
+	return strings.HasPrefix(key, "RELATED_IMAGE_che_workspace_plugin_broker_metadata") ||
+		strings.HasPrefix(key, "RELATED_IMAGE_che_workspace_plugin_broker_artifacts") ||
+		strings.HasPrefix(key, "RELATED_IMAGE_che_theia_plugin_registry_image") ||
+		strings.HasPrefix(key, "RELATED_IMAGE_che_theia_endpoint_runtime_binary_plugin_registry_image") ||
+		strings.HasPrefix(key, "RELATED_IMAGE_che_golang_1_14_devfile_registry_image") ||
+		strings.HasPrefix(key, "RELATED_IMAGE_che_php_7_devfile_registry_image") ||
+		strings.HasPrefix(key, "RELATED_IMAGE_che_java8_maven_devfile_registry_image") ||
+		strings.HasPrefix(key, "RELATED_IMAGE_che_java11_maven_devfile_registry_image") ||
+		strings.HasPrefix(key, "RELATED_IMAGE_che_cpp_rhel7_devfile_registry_image")
+
+}
+
+// Convert input string to RFC 1123 format ([a-z0-9]([-a-z0-9]*[a-z0-9])?) max 63 characters, if possible
+func ConvertToRFC1123(str string) (string, error) {
+	result := strings.ToLower(str)
+	if len(str) > validation.DNS1123LabelMaxLength {
+		result = result[:validation.DNS1123LabelMaxLength]
+	}
+
+	// Remove illegal trailing characters
+	i := len(result) - 1
+	for i >= 0 && !IsRFC1123Char(result[i]) {
+		i -= 1
+	}
+	result = result[:i+1]
+
+	result = strings.ReplaceAll(result, "_", "-")
+
+	if errs := validation.IsDNS1123Label(result); len(errs) > 0 {
+		return "", goerror.New("Cannot convert the following string to RFC 1123 format: " + str)
+	}
+	return result, nil
+}
+
+func IsRFC1123Char(ch byte) bool {
+	errs := validation.IsDNS1123Label(string(ch))
+	return len(errs) == 0
 }
 
 func CreateKubernetesImagePuller(ctx *DeployContext) (bool, error) {
