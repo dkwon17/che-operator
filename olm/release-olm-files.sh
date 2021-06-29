@@ -81,7 +81,7 @@ do
   RELEASE_CHE_RESTORE_CRD="${STABLE_BUNDLE_PATH}/manifests/org.eclipse.che_checlusterrestores_crd.yaml"
 
   setLatestReleasedVersion
-  downloadLatestReleasedBundleCRCRD
+  # downloadLatestReleasedBundleCRCRD
   packageName=$(getPackageName "${platform}")
 
   echo "[INFO] Will create release '${RELEASE}' from nightly version ${lastPackageNightlyVersion}'"
