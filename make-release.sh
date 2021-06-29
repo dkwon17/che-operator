@@ -11,12 +11,13 @@
 #   Red Hat, Inc. - initial API and implementation
 
 set -e
+set -x
 
 init() {
   RELEASE="$1"
   BRANCH=$(echo $RELEASE | sed 's/.$/x/')
   RELEASE_BRANCH="${RELEASE}-release"
-  GIT_REMOTE_UPSTREAM="https://github.com/eclipse-che/che-operator.git"
+  GIT_REMOTE_UPSTREAM="https://github.com/dkwon17/che-operator.git"
   RUN_RELEASE=false
   PUSH_OLM_BUNDLES=false
   PUSH_GIT_CHANGES=false
@@ -84,7 +85,7 @@ checkoutToReleaseBranch() {
   else
     echo "[INFO] $BRANCH does not exist. Will be created a new one from main."
     resetChanges main
-    git push origin main:$BRANCH
+    git push dkwon17 main:$BRANCH
   fi
   git checkout -B $RELEASE_BRANCH
 }
