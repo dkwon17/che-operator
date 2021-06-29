@@ -87,7 +87,7 @@ do
   echo "[INFO] Will create release '${RELEASE}' from nightly version ${lastPackageNightlyVersion}'"
 
   sed \
-  -e 's/imagePullPolicy: *Always/imagePullPolicy: IfNotPresent/' \
+  -e 's/imagePullPolicy: *Always/imagePullPolicy: Always/' \
   -e 's/"cheImageTag": *"nightly"/"cheImageTag": ""/' \
   -e 's|quay.io/eclipse/che-dashboard:next|quay.io/eclipse/che-dashboard:'${RELEASE}'|' \
   -e 's|"identityProviderImage": *"quay.io/eclipse/che-keycloak:nightly"|"identityProviderImage": ""|' \
