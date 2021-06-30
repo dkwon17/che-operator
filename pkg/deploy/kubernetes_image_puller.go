@@ -14,7 +14,6 @@ package deploy
 import (
 	"context"
 	goerror "errors"
-	"os"
 	"strings"
 	"time"
 
@@ -25,6 +24,7 @@ import (
 	operatorsv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	packagesv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/package-server/apis/operators/v1"
 	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -386,25 +386,10 @@ func UpdateImagePullerSpecIfEmpty(ctx *DeployContext) (orgv1.CheClusterSpecImage
 }
 
 func AddRelatedImages(ctx *DeployContext) {
-	relatedImages := []string{}
-	for _, env := range os.Environ() {
-		if !strings.HasPrefix(env, "RELATED_IMAGE_") {
-			continue
-		}
+	relatedImages := GetRelatedImagesEnvVars()
 
-		keyValue := strings.Split(env, "=")
-		key := keyValue[0]
-		value := keyValue[1]
-
-		if ShouldAddImage(key) {
-			key = key[len("RELATED_IMAGE_"):]
-			key, err := ConvertToRFC1123(key)
-			if err != nil {
-				logrus.Errorf(err.Error())
-				continue
-			}
-			relatedImages = append(relatedImages, key+"="+value)
-		}
+	if len(relatedImages) == 0 {
+		return
 	}
 
 	if len(ctx.CheCluster.Spec.ImagePuller.Spec.Images) != 0 &&
@@ -412,21 +397,48 @@ func AddRelatedImages(ctx *DeployContext) {
 		ctx.CheCluster.Spec.ImagePuller.Spec.Images += ";"
 	}
 
-	ctx.CheCluster.Spec.ImagePuller.Spec.Images += strings.Join(relatedImages[:], ";")
+	for _, envVar := range relatedImages {
+		ctx.CheCluster.Spec.ImagePuller.Spec.Images += envVar.Name + "=" + envVar.Value + ";"
+	}
 	ctx.ClusterAPI.Client.Update(context.TODO(), ctx.CheCluster, &client.UpdateOptions{})
 }
 
-func ShouldAddImage(key string) bool {
-	return strings.HasPrefix(key, "RELATED_IMAGE_che_workspace_plugin_broker_metadata") ||
-		strings.HasPrefix(key, "RELATED_IMAGE_che_workspace_plugin_broker_artifacts") ||
-		strings.HasPrefix(key, "RELATED_IMAGE_che_theia_plugin_registry_image") ||
-		strings.HasPrefix(key, "RELATED_IMAGE_che_theia_endpoint_runtime_binary_plugin_registry_image") ||
-		strings.HasPrefix(key, "RELATED_IMAGE_che_golang_1_14_devfile_registry_image") ||
-		strings.HasPrefix(key, "RELATED_IMAGE_che_php_7_devfile_registry_image") ||
-		strings.HasPrefix(key, "RELATED_IMAGE_che_java8_maven_devfile_registry_image") ||
-		strings.HasPrefix(key, "RELATED_IMAGE_che_java11_maven_devfile_registry_image") ||
-		strings.HasPrefix(key, "RELATED_IMAGE_che_cpp_rhel7_devfile_registry_image")
+func GetRelatedImagesEnvVars() []v1.EnvVar {
+	relatedImagePatterns := [...]string{
+		"^RELATED_IMAGE_.*_plugin_java8$",
+		"^RELATED_IMAGE_.*_plugin_java11$",
+		"^RELATED_IMAGE_.*_plugin_kubernetes$",
+		"^RELATED_IMAGE_.*_plugin_openshift$",
+		"^RELATED_IMAGE_.*_plugin_broker.*",
+		"^RELATED_IMAGE_.*_theia.*",
+		"^RELATED_IMAGE_.*_stacks_cpp$",
+		"^RELATED_IMAGE_.*_stacks_dotnet$",
+		"^RELATED_IMAGE_.*_stacks_golang$",
+		"^RELATED_IMAGE_.*_stacks_php$",
+		"^RELATED_IMAGE_.*_cpp_.*_devfile_registry_image.*",
+		"^RELATED_IMAGE_.*_dotnet_.*_devfile_registry_image.*",
+		"^RELATED_IMAGE_.*_golang_.*_devfile_registry_image.*",
+		"^RELATED_IMAGE_.*_php_.*_devfile_registry_image.*",
+		"^RELATED_IMAGE_.*_php_.*_devfile_registry_image.*",
+		"^RELATED_IMAGE_.*_java.*_maven_devfile_registry_image.*",
+	}
 
+	var err error
+	relatedImages := []v1.EnvVar{}
+	for _, pattern := range relatedImagePatterns {
+		if matches := util.GetEnvByRegExp(pattern); len(matches) > 0 {
+			for _, match := range matches {
+				match.Name = match.Name[len("RELATED_IMAGE_"):]
+				match.Name, err = ConvertToRFC1123(match.Name)
+				if err != nil {
+					logrus.Errorf(err.Error())
+					continue
+				}
+				relatedImages = append(relatedImages, match)
+			}
+		}
+	}
+	return relatedImages
 }
 
 // Convert input string to RFC 1123 format ([a-z0-9]([-a-z0-9]*[a-z0-9])?) max 63 characters, if possible
