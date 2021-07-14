@@ -148,7 +148,7 @@ var (
 		Spec: chev1alpha1.KubernetesImagePullerSpec{
 			DeploymentName: "kubernetes-image-puller",
 			ConfigMapName:  "k8s-image-puller",
-			Images:         "che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:v3.4.0;che-workspace-plugin-broker-artifacts=quay.io/eclipse/che-plugin-artifacts-broker:v3.4.0;",
+			Images:         "related-image-che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:v3.4.0;related-image-che-workspace-plugin-broker-artifacts=quay.io/eclipse/che-plugin-artifacts-broker:v3.4.0;",
 		},
 	}
 	clusterServiceVersion = &operatorsv1alpha1.ClusterServiceVersion{
@@ -734,7 +734,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 		},
 		{
 			name:   "image puller enabled, user images set, subscription exists, should create a KubernetesImagePuller with user images",
-			initCR: InitCheCRWithImagePullerEnabledAndImagesSet(),
+			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("image=image_url"),
 			initObjects: []runtime.Object{
 				packageManifest,
 				operatorGroup,
@@ -768,6 +768,213 @@ func TestImagePullerConfiguration(t *testing.T) {
 					DeploymentName: "kubernetes-image-puller",
 					ConfigMapName:  "k8s-image-puller",
 					Images:         "image=image_url",
+				},
+			},
+		},
+		{
+			name:   "image puller enabled, default images set, subscription exists, should update KubernetesImagePuller default images",
+			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("related-image-che-workspace-plugin-broker-metadata=old_url;"),
+			initObjects: []runtime.Object{
+				packageManifest,
+				operatorGroup,
+				subscription,
+				&chev1alpha1.KubernetesImagePuller{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "che.eclipse.org/v1alpha1",
+						Kind:       "KubernetesImagePuller",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "eclipse-che-image-puller",
+						Namespace: namespace,
+						Labels: map[string]string{
+							"app.kubernetes.io/part-of": name,
+							"app":                       "che",
+							"component":                 "kubernetes-image-puller",
+						},
+						ResourceVersion: "1",
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								APIVersion:         "org.eclipse.che/v1",
+								Kind:               "CheCluster",
+								Controller:         &valueTrue,
+								BlockOwnerDeletion: &valueTrue,
+								Name:               "eclipse-che",
+							},
+						},
+					},
+					Spec: chev1alpha1.KubernetesImagePullerSpec{
+						DeploymentName: "kubernetes-image-puller",
+						ConfigMapName:  "k8s-image-puller",
+						Images:         "related-image-che-workspace-plugin-broker-metadata=old_url;",
+					},
+				},
+			},
+			expectedImagePuller: &chev1alpha1.KubernetesImagePuller{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "che.eclipse.org/v1alpha1",
+					Kind:       "KubernetesImagePuller",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che-image-puller",
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/part-of": name,
+						"app":                       "che",
+						"component":                 "kubernetes-image-puller",
+					},
+					ResourceVersion: "2",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion:         "org.eclipse.che/v1",
+							Kind:               "CheCluster",
+							Controller:         &valueTrue,
+							BlockOwnerDeletion: &valueTrue,
+							Name:               "eclipse-che",
+						},
+					},
+				},
+				Spec: chev1alpha1.KubernetesImagePullerSpec{
+					DeploymentName: "kubernetes-image-puller",
+					ConfigMapName:  "k8s-image-puller",
+					Images:         "related-image-che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:v3.4.0;related-image-che-workspace-plugin-broker-artifacts=quay.io/eclipse/che-plugin-artifacts-broker:v3.4.0;",
+				},
+			},
+		},
+		{
+			name:   "image puller enabled, default images set, subscription exists, should update KubernetesImagePuller default images while keeping user images",
+			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("image=image_url;related-image-che-workspace-plugin-broker-metadata=old_url;"),
+			initObjects: []runtime.Object{
+				packageManifest,
+				operatorGroup,
+				subscription,
+				&chev1alpha1.KubernetesImagePuller{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "che.eclipse.org/v1alpha1",
+						Kind:       "KubernetesImagePuller",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "eclipse-che-image-puller",
+						Namespace: namespace,
+						Labels: map[string]string{
+							"app.kubernetes.io/part-of": name,
+							"app":                       "che",
+							"component":                 "kubernetes-image-puller",
+						},
+						ResourceVersion: "1",
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								APIVersion:         "org.eclipse.che/v1",
+								Kind:               "CheCluster",
+								Controller:         &valueTrue,
+								BlockOwnerDeletion: &valueTrue,
+								Name:               "eclipse-che",
+							},
+						},
+					},
+					Spec: chev1alpha1.KubernetesImagePullerSpec{
+						DeploymentName: "kubernetes-image-puller",
+						ConfigMapName:  "k8s-image-puller",
+						Images:         "image=image_url;related-image-che-workspace-plugin-broker-metadata=old_url;",
+					},
+				},
+			},
+			expectedImagePuller: &chev1alpha1.KubernetesImagePuller{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "che.eclipse.org/v1alpha1",
+					Kind:       "KubernetesImagePuller",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che-image-puller",
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/part-of": name,
+						"app":                       "che",
+						"component":                 "kubernetes-image-puller",
+					},
+					ResourceVersion: "2",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion:         "org.eclipse.che/v1",
+							Kind:               "CheCluster",
+							Controller:         &valueTrue,
+							BlockOwnerDeletion: &valueTrue,
+							Name:               "eclipse-che",
+						},
+					},
+				},
+				Spec: chev1alpha1.KubernetesImagePullerSpec{
+					DeploymentName: "kubernetes-image-puller",
+					ConfigMapName:  "k8s-image-puller",
+					Images:         "image=image_url;related-image-che-workspace-plugin-broker-metadata=quay.io/eclipse/che-plugin-metadata-broker:v3.4.0;related-image-che-workspace-plugin-broker-artifacts=quay.io/eclipse/che-plugin-artifacts-broker:v3.4.0;",
+				},
+			},
+		},
+		{
+			name:   "image puller enabled, default images not set, subscription exists, should not set KubernetesImagePuller default images",
+			initCR: InitCheCRWithImagePullerEnabledAndImagesSet("image=image_url;"),
+			initObjects: []runtime.Object{
+				packageManifest,
+				operatorGroup,
+				subscription,
+				&chev1alpha1.KubernetesImagePuller{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "che.eclipse.org/v1alpha1",
+						Kind:       "KubernetesImagePuller",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "eclipse-che-image-puller",
+						Namespace: namespace,
+						Labels: map[string]string{
+							"app.kubernetes.io/part-of": name,
+							"app":                       "che",
+							"component":                 "kubernetes-image-puller",
+						},
+						ResourceVersion: "1",
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								APIVersion:         "org.eclipse.che/v1",
+								Kind:               "CheCluster",
+								Controller:         &valueTrue,
+								BlockOwnerDeletion: &valueTrue,
+								Name:               "eclipse-che",
+							},
+						},
+					},
+					Spec: chev1alpha1.KubernetesImagePullerSpec{
+						DeploymentName: "kubernetes-image-puller",
+						ConfigMapName:  "k8s-image-puller",
+						Images:         "image=image_url;",
+					},
+				},
+			},
+			expectedImagePuller: &chev1alpha1.KubernetesImagePuller{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "che.eclipse.org/v1alpha1",
+					Kind:       "KubernetesImagePuller",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "eclipse-che-image-puller",
+					Namespace: namespace,
+					Labels: map[string]string{
+						"app.kubernetes.io/part-of": name,
+						"app":                       "che",
+						"component":                 "kubernetes-image-puller",
+					},
+					ResourceVersion: "1",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion:         "org.eclipse.che/v1",
+							Kind:               "CheCluster",
+							Controller:         &valueTrue,
+							BlockOwnerDeletion: &valueTrue,
+							Name:               "eclipse-che",
+						},
+					},
+				},
+				Spec: chev1alpha1.KubernetesImagePullerSpec{
+					DeploymentName: "kubernetes-image-puller",
+					ConfigMapName:  "k8s-image-puller",
+					Images:         "image=image_url;",
 				},
 			},
 		},
@@ -1581,7 +1788,7 @@ func InitCheCRWithImagePullerEnabledAndDefaultValuesSet() *orgv1.CheCluster {
 	}
 }
 
-func InitCheCRWithImagePullerEnabledAndImagesSet() *orgv1.CheCluster {
+func InitCheCRWithImagePullerEnabledAndImagesSet(images string) *orgv1.CheCluster {
 	return &orgv1.CheCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -1596,7 +1803,7 @@ func InitCheCRWithImagePullerEnabledAndImagesSet() *orgv1.CheCluster {
 				Spec: chev1alpha1.KubernetesImagePullerSpec{
 					DeploymentName: "kubernetes-image-puller",
 					ConfigMapName:  "k8s-image-puller",
-					Images:         "image=image_url",
+					Images:         images,
 				},
 			},
 			Auth: orgv1.CheClusterSpecAuth{
@@ -1626,6 +1833,39 @@ func InitCheCRWithImagePullerEnabledAndNewValuesSet() *orgv1.CheCluster {
 			Auth: orgv1.CheClusterSpecAuth{
 				OpenShiftoAuth: util.NewBoolPointer(false),
 			},
+		},
+	}
+}
+
+func InitImagePuullerWithImage(images string) *chev1alpha1.KubernetesImagePuller {
+	return &chev1alpha1.KubernetesImagePuller{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "che.eclipse.org/v1alpha1",
+			Kind:       "KubernetesImagePuller",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "eclipse-che-image-puller",
+			Namespace: namespace,
+			Labels: map[string]string{
+				"app.kubernetes.io/part-of": name,
+				"app":                       "che",
+				"component":                 "kubernetes-image-puller",
+			},
+			ResourceVersion: "1",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion:         "org.eclipse.che/v1",
+					Kind:               "CheCluster",
+					Controller:         &valueTrue,
+					BlockOwnerDeletion: &valueTrue,
+					Name:               "eclipse-che",
+				},
+			},
+		},
+		Spec: chev1alpha1.KubernetesImagePullerSpec{
+			DeploymentName: "kubernetes-image-puller",
+			ConfigMapName:  "k8s-image-puller",
+			Images:         images,
 		},
 	}
 }

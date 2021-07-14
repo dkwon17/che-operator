@@ -473,6 +473,24 @@ func StringToImageSlice(imagesString string) []Image {
 	return images
 }
 
+func DivideSpecImages(specImages []Image, specDefaultImages *[]Image, specNonDefaultImages *[]Image) {
+	for _, image := range specImages {
+		match := false
+		// TODO: maybe merge all regexes into one using |
+		for _, regExp := range imagePatterns {
+			rxp := regexp.MustCompile(regExp)
+			if rxp.MatchString(image.name) {
+				*specDefaultImages = append(*specDefaultImages, image)
+				match = true
+				break
+			}
+		}
+		if !match {
+			*specNonDefaultImages = append(*specNonDefaultImages, image)
+		}
+	}
+}
+
 func GetDefaultImages() []Image {
 	imageVars := []Image{}
 	for _, pattern := range imagePatterns {
@@ -539,14 +557,19 @@ func GetExpectedKubernetesImagePuller(ctx *DeployContext) *chev1alpha1.Kubernete
 }
 
 func UpdateDefaultImagesIfNeeded(ctx *DeployContext) error {
-	specDefaultImages := StringToImageSlice(ctx.CheCluster.Spec.ImagePuller.Spec.Images)
+	specImages := StringToImageSlice(ctx.CheCluster.Spec.ImagePuller.Spec.Images)
+	specNonDefaultImages := []Image{}
+	specDefaultImages := []Image{}
+	DivideSpecImages(specImages, &specDefaultImages, &specNonDefaultImages)
+	logrus.Info("Images from specNonDefaultImages: ", specNonDefaultImages)
+	logrus.Info("Images from specDefaultImages: ", specDefaultImages)
 	envDefaultImages := GetDefaultImages()
-	logrus.Info("Default images from images.spec: ", specDefaultImages)
 	logrus.Info("Default images from environment variables: ", envDefaultImages)
 	if ShouldUpdateSpecDefaults(specDefaultImages, envDefaultImages) {
 		logrus.Info("New default images exist")
-		specDefaultImages = ReplaceDefaultImages(specDefaultImages, envDefaultImages)
-		defaultImageString := ImageSliceToString(envDefaultImages)
+		specImages = append(specNonDefaultImages, envDefaultImages...)
+		logrus.Info("Replaced spec images: ", specImages)
+		defaultImageString := ImageSliceToString(specImages)
 		ctx.CheCluster.Spec.ImagePuller.Spec.Images = defaultImageString
 		return UpdateCheCRSpec(ctx, "Kubernetes Image Puller default images", defaultImageString)
 	}
@@ -555,7 +578,12 @@ func UpdateDefaultImagesIfNeeded(ctx *DeployContext) error {
 }
 
 func ShouldUpdateSpecDefaults(specDefaultImages []Image, envDefaultImages []Image) bool {
-	// Check if first slice's URLs is a subset of the second slice's URLs.
+	// No default images in `images.spec` to begin with
+	if len(specDefaultImages) == 0 {
+		return false
+	}
+
+	// Check if first slice's URLs and the second slice's URLs are equal sets.
 	// If yes, return false. If no, return true.
 
 	// TODO, check for set equality instead of checking for subset
@@ -570,26 +598,6 @@ func ShouldUpdateSpecDefaults(specDefaultImages []Image, envDefaultImages []Imag
 		}
 	}
 	return false
-}
-
-func ReplaceDefaultImages(currentImages []Image, defaultImages []Image) []Image {
-	// remove default images
-	i := 0
-	for _, image := range currentImages {
-
-		// TODO: maybe merge all regexes into one using |
-		for _, regExp := range imagePatterns {
-			rxp := regexp.MustCompile(regExp)
-			if !rxp.MatchString(image.name) {
-				currentImages[i] = image
-				i++
-				break
-			}
-		}
-	}
-
-	// add new default images
-	return append(currentImages[:i], defaultImages...)
 }
 
 // Unisntall the CSV, OperatorGroup, Subscription, KubernetesImagePuller, and update the CheCluster to remove
