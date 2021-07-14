@@ -338,9 +338,6 @@ func (r *ReconcileChe) Reconcile(request reconcile.Request) (reconcile.Result, e
 		CheCluster: instance,
 	}
 
-	logrus.Info("Resource version: ", deployContext.CheCluster.ResourceVersion)
-	logrus.Info("Time: ", deployContext.CheCluster.CreationTimestamp.Time)
-
 	// Reconcile finalizers before CR is deleted
 	r.reconcileFinalizers(deployContext)
 
