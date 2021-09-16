@@ -39,7 +39,7 @@ func TestEnvVars(t *testing.T) {
 
 	cases := []testcase{
 		{
-			name: "detect plugin broker images",
+			name: "asdfdetect plugin broker images",
 			env: map[string]string{
 				"RELATED_IMAGE_che_workspace_plugin_broker_artifacts": "quay.io/eclipse/che-plugin-metadata-broker",
 				"RELATED_IMAGE_che_workspace_plugin_broker_metadata":  "quay.io/eclipse/che-plugin-artifacts-broker",
