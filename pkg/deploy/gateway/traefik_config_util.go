@@ -15,6 +15,7 @@ const (
 	StripPrefixMiddlewareSuffix   = "-strip-prefix"
 	HeaderRewriteMiddlewareSuffix = "-header-rewrite"
 	AuthMiddlewareSuffix          = "-auth"
+	ErrorsMiddlewareSuffix         = "-errors"
 )
 
 func CreateEmptyTraefikConfig() *TraefikConfig {
@@ -49,8 +50,22 @@ func (cfg *TraefikConfig) AddComponent(componentName string, rule string, priori
 			},
 		},
 	}
+	cfg.AddService(componentName, serviceAddr)
+
 	if len(stripPrefixes) > 0 {
 		cfg.AddStripPrefix(componentName, stripPrefixes)
+	}
+}
+
+func (cfg *TraefikConfig) AddService(componentName string, serviceAddr string) {
+	cfg.HTTP.Services[componentName] = &TraefikConfigService{
+		LoadBalancer: TraefikConfigLoadbalancer{
+			Servers: []TraefikConfigLoadbalancerServer{
+				{
+					URL: serviceAddr,
+				},
+			},
+		},
 	}
 }
 
@@ -98,6 +113,18 @@ func (cfg *TraefikConfig) AddAuth(componentName string, authAddress string) {
 	cfg.HTTP.Middlewares[middlewareName] = &TraefikConfigMiddleware{
 		ForwardAuth: &TraefikConfigForwardAuth{
 			Address: authAddress,
+		},
+	}
+}
+
+func (cfg *TraefikConfig) AddErrors(componentName string, status string, service string, query string) {
+	middlewareName := componentName + ErrorsMiddlewareSuffix
+	cfg.HTTP.Routers[componentName].Middlewares = append(cfg.HTTP.Routers[componentName].Middlewares, middlewareName)
+	cfg.HTTP.Middlewares[middlewareName] = &TraefikConfigMiddleware{
+		Errors: &TraefikConfigErrors{
+			Status: status,
+			Service: service,
+			Query:  query,
 		},
 	}
 }

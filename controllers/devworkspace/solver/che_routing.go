@@ -421,7 +421,7 @@ providers:
     filename: "/etc/traefik/workspace.yml"
     watch: false
 log:
-  level: "INFO"`, wsGatewayPort)
+  level: "DEBUG"`, wsGatewayPort)
 
 	return wsConfigMap
 }
@@ -455,6 +455,8 @@ func provisionMainWorkspaceRoute(cheCluster *v2alpha1.CheCluster, routing *dwo.D
 	// authorize against kube-rbac-proxy in che-gateway. This will be needed for k8s native auth as well.
 	cfg.AddAuth(dwId, "http://127.0.0.1:8089?namespace="+dwNamespace)
 
+	add5XXErrorsMiddleware(cfg, dwId)
+
 	// make '/healthz' path of main endpoints reachable from outside
 	routeForHealthzEndpoint(cfg, dwId, routing.Spec.Endpoints)
 
@@ -474,6 +476,12 @@ func provisionMainWorkspaceRoute(cheCluster *v2alpha1.CheCluster, routing *dwo.D
 			Data: map[string]string{dwId + ".yml": string(contents)},
 		}, nil
 	}
+}
+
+func add5XXErrorsMiddleware(cfg *gateway.TraefikConfig, dwId string) {
+    response5XXServiceName := dwId + "-5XX-page"
+	cfg.AddService(response5XXServiceName, "http://che-dashboard:8080") // TODO: need to read flavor name instead of hardcoding `che`
+	cfg.AddErrors(dwId, "500-599", response5XXServiceName, "/")
 }
 
 // makes '/healthz' path of main endpoints reachable from the outside

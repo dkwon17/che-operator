@@ -393,7 +393,7 @@ providers:
     directory: "/dynamic-config"
     watch: true
 log:
-  level: "INFO"`, traefikPort)
+  level: "DEBUG"`, traefikPort)
 
 	if util.IsOpenShift {
 		data += `

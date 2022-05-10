@@ -107,8 +107,27 @@ func (r *DevWorkspaceRoutingReconciler) Reconcile(ctx context.Context, req ctrl.
 		return reconcile.Result{}, r.finalize(solver, instance)
 	}
 
+	workspaceMeta := solvers.DevWorkspaceMetadata{
+		DevWorkspaceId: instance.Spec.DevWorkspaceId,
+		Namespace:      instance.Namespace,
+		PodSelector:    instance.Spec.PodSelector,
+	}
+
 	if instance.Annotations != nil && instance.Annotations[constants.DevWorkspaceStartedStatusAnnotation] == "false" {
-		return reconcile.Result{}, nil
+
+		// Deleting the workspace service
+		routingObjects, err := solver.GetSpecObjects(instance, workspaceMeta)
+		if err == nil {
+			services := routingObjects.Services
+			for _, service := range services {
+				err := r.Delete(context.TODO(), &service)
+				if err != nil {
+					return reconcile.Result{}, err
+				}
+			}
+			return reconcile.Result{}, nil
+		}
+		return reconcile.Result{}, err
 	}
 
 	if instance.Status.Phase == controllerv1alpha1.RoutingFailed {
@@ -118,12 +137,6 @@ func (r *DevWorkspaceRoutingReconciler) Reconcile(ctx context.Context, req ctrl.
 	// Add finalizer for this CR if not already present
 	if err := r.setFinalizer(reqLogger, solver, instance); err != nil {
 		return reconcile.Result{}, err
-	}
-
-	workspaceMeta := solvers.DevWorkspaceMetadata{
-		DevWorkspaceId: instance.Spec.DevWorkspaceId,
-		Namespace:      instance.Namespace,
-		PodSelector:    instance.Spec.PodSelector,
 	}
 
 	restrictedAccess, setRestrictedAccess := instance.Annotations[constants.DevWorkspaceRestrictedAccessAnnotation]
