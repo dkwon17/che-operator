@@ -3349,6 +3349,12 @@ spec:
                       type: string
                     description: The node selector limits the nodes that can run the workspace pods.
                     type: object
+                  secondsOfInactivityBeforeIdling:
+                    description: 'Idle timeout for workspaces, for example: 15m, 30m, 1h. This timeout is the duration after which a workspace will be idled if there is no activity. If this value is not provided, workspaces will not idle.'
+                    type: string
+                  secondsOfRunBeforeIdling:
+                    description: 'Run timeout for workspaces, for example: 15m, 30m, 1h. This timeout is the maximum duration a workspace runs. If this value is not provided, there is no maximium workspace run duration.'
+                    type: string
                   storage:
                     default:
                       pvcStrategy: common

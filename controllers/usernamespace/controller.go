@@ -238,6 +238,11 @@ func (r *CheUserNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
+	if err = r.reconcileIdleSettings(ctx, req.Name, checluster, deployContext); err != nil {
+		logrus.Errorf("Failed to reconcile idle settings into namespace '%s': %v", req.Name, err)
+		return ctrl.Result{}, err
+	}
+
 	if err = r.reconcileNodeSelectorAndTolerations(ctx, req.Name, checluster, deployContext); err != nil {
 		logrus.Errorf("Failed to reconcile the workspace pod node selector and tolerations in namespace '%s': %v", req.Name, err)
 		return ctrl.Result{}, err
@@ -445,6 +450,48 @@ func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context,
 	}
 
 	_, err = deploy.DoSync(deployContext, cfg, deploy.ConfigMapDiffOpts)
+	return err
+}
+
+func (r *CheUserNamespaceReconciler) reconcileIdleSettings(ctx context.Context, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
+	if checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling == "" && checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling == "" {
+		return nil
+	}
+	configMapName := prefixedName("idle-settings")
+	cfg := &corev1.ConfigMap{}
+
+	requiredLabels := defaults.AddStandardLabelsForComponent(checluster, userSettingsComponentLabelValue, map[string]string{
+		dwconstants.DevWorkspaceMountLabel:          "true",
+		dwconstants.DevWorkspaceWatchConfigMapLabel: "true",
+	})
+	requiredAnnos := map[string]string{
+		dwconstants.DevWorkspaceMountAsAnnotation: "env",
+	}
+
+	data := map[string]string{}
+
+	if checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling != "" {
+		data["SECONDS_OF_DW_INACTIVITY_BEFORE_IDLING"] = checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling
+	}
+
+	if checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling != "" {
+		data["SECONDS_OF_DW_RUN_BEFORE_IDLING"] = checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling
+	}
+
+	cfg = &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        configMapName,
+			Namespace:   targetNs,
+			Labels:      requiredLabels,
+			Annotations: requiredAnnos,
+		},
+		Data: data,
+	}
+	_, err := deploy.DoSync(deployContext, cfg, deploy.ConfigMapDiffOpts)
 	return err
 }
 
