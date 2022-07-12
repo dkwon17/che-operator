@@ -90,16 +90,16 @@ type CheClusterDevEnvironments struct {
 	// These default components are meant to be used when a Devfile, that does not contain any components.
 	// +optional
 	DefaultComponents []devfile.Component `json:"defaultComponents,omitempty"`
-	// Idle timeout for workspaces, for example: 15m, 30m, 1h.
+	// Idle timeout for workspaces in seconds.
 	// This timeout is the duration after which a workspace will be idled if there is no activity.
-	// If this value is not provided, workspaces will not idle.
-	// +optional
-	SecondsOfInactivityBeforeIdling string `json:"secondsOfInactivityBeforeIdling,omitempty"`
-	// Run timeout for workspaces, for example: 15m, 30m, 1h.
+	// To disable workspace idling due to inactivity, set this value to -1.
+	// +kubebuilder:default:=900
+	SecondsOfInactivityBeforeIdling *int32 `json:"secondsOfInactivityBeforeIdling,omitempty"`
+	// Run timeout for workspaces in seconds.
 	// This timeout is the maximum duration a workspace runs.
-	// If this value is not provided, there is no maximium workspace run duration.
-	// +optional
-	SecondsOfRunBeforeIdling string `json:"secondsOfRunBeforeIdling,omitempty"`
+	// To disable workspace run timeout, set this value to -1.
+	// +kubebuilder:default:=-1
+	SecondsOfRunBeforeIdling *int32 `json:"secondsOfRunBeforeIdling,omitempty"`
 }
 
 // Che components configuration.

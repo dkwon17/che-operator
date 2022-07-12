@@ -15,6 +15,7 @@ package usernamespace
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
@@ -34,6 +35,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -454,7 +456,9 @@ func (r *CheUserNamespaceReconciler) reconcileProxySettings(ctx context.Context,
 }
 
 func (r *CheUserNamespaceReconciler) reconcileIdleSettings(ctx context.Context, targetNs string, checluster *chev2.CheCluster, deployContext *chetypes.DeployContext) error {
-	if checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling == "" && checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling == "" {
+
+	noIdle := pointer.Int32Ptr(-1)
+	if checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling == noIdle && checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling == noIdle {
 		return nil
 	}
 	configMapName := prefixedName("idle-settings")
@@ -470,12 +474,12 @@ func (r *CheUserNamespaceReconciler) reconcileIdleSettings(ctx context.Context, 
 
 	data := map[string]string{}
 
-	if checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling != "" {
-		data["SECONDS_OF_DW_INACTIVITY_BEFORE_IDLING"] = checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling
+	if checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling != noIdle {
+		data["SECONDS_OF_DW_INACTIVITY_BEFORE_IDLING"] = strconv.Itoa(int(*checluster.Spec.DevEnvironments.SecondsOfInactivityBeforeIdling))
 	}
 
-	if checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling != "" {
-		data["SECONDS_OF_DW_RUN_BEFORE_IDLING"] = checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling
+	if checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling != noIdle {
+		data["SECONDS_OF_DW_RUN_BEFORE_IDLING"] = strconv.Itoa(int(*checluster.Spec.DevEnvironments.SecondsOfRunBeforeIdling))
 	}
 
 	cfg = &corev1.ConfigMap{

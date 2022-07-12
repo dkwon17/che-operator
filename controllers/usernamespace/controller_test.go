@@ -76,8 +76,8 @@ func setupCheCluster(t *testing.T, ctx context.Context, cl client.Client, scheme
 				TrustedCerts: &chev2.TrustedCerts{
 					GitTrustedCertsConfigMapName: "che-git-self-signed-cert",
 				},
-				SecondsOfInactivityBeforeIdling: "900",
-				SecondsOfRunBeforeIdling:        "1800",
+				SecondsOfInactivityBeforeIdling: pointer.Int32Ptr(900),
+				SecondsOfRunBeforeIdling:        pointer.Int32Ptr(1800),
 			},
 			Networking: chev2.CheClusterSpecNetworking{
 				Domain: "root-domain",
