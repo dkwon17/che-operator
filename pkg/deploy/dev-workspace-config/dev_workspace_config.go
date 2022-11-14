@@ -54,7 +54,7 @@ func (d *DevWorkspaceConfigReconciler) Reconcile(ctx *chetypes.DeployContext) (r
 	if dwoc.Config == nil {
 		dwoc.Config = &controllerv1alpha1.OperatorConfiguration{}
 	}
-	err := updateOperatorConfig(ctx.CheCluster.Spec.DevEnvironments.Storage, dwoc.Config)
+	err := updateOperatorConfig(ctx.CheCluster.Spec.DevEnvironments, dwoc.Config)
 	if err != nil {
 		return reconcile.Result{}, false, err
 	}
@@ -71,20 +71,20 @@ func (d *DevWorkspaceConfigReconciler) Finalize(ctx *chetypes.DeployContext) boo
 	return true
 }
 
-func updateOperatorConfig(storage chev2.WorkspaceStorage, operatorConfig *controllerv1alpha1.OperatorConfiguration) error {
+func updateOperatorConfig(devEnvironments chev2.CheClusterDevEnvironments, operatorConfig *controllerv1alpha1.OperatorConfiguration) error {
 	var pvc *chev2.PVC
 
-	pvcStrategy := utils.GetValue(storage.PvcStrategy, constants.DefaultPvcStorageStrategy)
+	pvcStrategy := utils.GetValue(devEnvironments.Storage.PvcStrategy, constants.DefaultPvcStorageStrategy)
 	switch pvcStrategy {
 	case constants.CommonPVCStorageStrategy:
 		fallthrough
 	case constants.PerUserPVCStorageStrategy:
-		if storage.PerUserStrategyPvcConfig != nil {
-			pvc = storage.PerUserStrategyPvcConfig
+		if devEnvironments.Storage.PerUserStrategyPvcConfig != nil {
+			pvc = devEnvironments.Storage.PerUserStrategyPvcConfig
 		}
 	case constants.PerWorkspacePVCStorageStrategy:
-		if storage.PerWorkspaceStrategyPvcConfig != nil {
-			pvc = storage.PerWorkspaceStrategyPvcConfig
+		if devEnvironments.Storage.PerWorkspaceStrategyPvcConfig != nil {
+			pvc = devEnvironments.Storage.PerWorkspaceStrategyPvcConfig
 		}
 	}
 
@@ -92,12 +92,19 @@ func updateOperatorConfig(storage chev2.WorkspaceStorage, operatorConfig *contro
 		if operatorConfig.Workspace == nil {
 			operatorConfig.Workspace = &controllerv1alpha1.WorkspaceConfig{}
 		}
-		return updateWorkspaceConfig(pvc, pvcStrategy == constants.PerWorkspacePVCStorageStrategy, operatorConfig.Workspace)
+		if err := updateWorkspaceConfigStorage(pvc, pvcStrategy == constants.PerWorkspacePVCStorageStrategy, operatorConfig.Workspace); err != nil {
+			return err
+		}
 	}
+
+	if devEnvironments.PodSchedulerName != "" {
+		operatorConfig.Workspace.SchedulerName = devEnvironments.PodSchedulerName
+	}
+
 	return nil
 }
 
-func updateWorkspaceConfig(pvc *chev2.PVC, isPerWorkspacePVCStorageStrategy bool, workspaceConfig *controllerv1alpha1.WorkspaceConfig) error {
+func updateWorkspaceConfigStorage(pvc *chev2.PVC, isPerWorkspacePVCStorageStrategy bool, workspaceConfig *controllerv1alpha1.WorkspaceConfig) error {
 	if pvc.StorageClass != "" {
 		workspaceConfig.StorageClassName = &pvc.StorageClass
 	}
