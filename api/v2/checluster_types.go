@@ -114,7 +114,7 @@ type CheClusterDevEnvironments struct {
 	// Container build configuration.
 	// +optional
 	ContainerBuildConfiguration *ContainerBuildConfiguration `json:"containerBuildConfiguration,omitempty"`
-	// Pod scheduler for the wokrpsace pods.
+	// Pod scheduler for the workspace pods.
 	// If not specified, the pod scheduler is set to the default scheduler on the cluster.
 	// +optional
 	PodSchedulerName string `json:"podSchedulerName,omitempty"`
