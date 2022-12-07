@@ -484,7 +484,7 @@ func provisionMainWorkspaceRoute(cheCluster *chev2.CheCluster, routing *dwo.DevW
 	// authorize against kube-rbac-proxy in che-gateway. This will be needed for k8s native auth as well.
 	cfg.AddAuth(dwId, "http://127.0.0.1:8089?namespace="+dwNamespace)
 
-	add5XXErrorHandling(cfg, dwId)
+	add5XXErrorHandling(cfg, "1500ms", 3, "200ms", dwId)
 
 	// make '/healthz' path of main endpoints reachable from outside
 	routeForHealthzEndpoint(cfg, dwId, routing.Spec.Endpoints)
@@ -507,8 +507,12 @@ func provisionMainWorkspaceRoute(cheCluster *chev2.CheCluster, routing *dwo.DevW
 	}
 }
 
-// when accessing workspace url, if 5xx error is returned, redirect to the dashboard service
-func add5XXErrorHandling(cfg *gateway.TraefikConfig, dwId string) {
+// add5XXErrorHandling adds traefik middlewares and a servertransport to the traefik config such that
+// when a connection cannot be established with the workspace service within the `dialTimeout` (causing a 5XX error code), traefik
+// routes the request to the dashboard service instead.
+// If a connection cannot be established with the workspace service within the `dialTimeout`, traefik will retry the connection `retries` times with
+// an exponential backoff with an `initialInterval`.
+func add5XXErrorHandling(cfg *gateway.TraefikConfig, dialTimeout string, retries int, initialInterval string, dwId string) {
 	// revalidate cache to prevent case where redirect to dashboard after trying to restart an idled workspace
 	noCacheHeader := map[string]string{"cache-control": "no-store, max-age=0"}
 	cfg.AddResponseHeaders(dwId, noCacheHeader)
@@ -517,16 +521,15 @@ func add5XXErrorHandling(cfg *gateway.TraefikConfig, dwId string) {
 	dashboardServiceName := defaults.GetCheFlavor() + "-dashboard"
 	cfg.AddErrors(dwId, "500-599", dashboardServiceName, "/")
 
-	if infrastructure.IsOpenShift() {
-		// On OpenShift, fire errors middleware after 4 seconds of not being able to connect to service
-		cfg.HTTP.ServersTransports = map[string]*gateway.TraefikConfigServersTransport{}
-		cfg.HTTP.ServersTransports[dwId] = &gateway.TraefikConfigServersTransport{
-			ForwardingTimeouts: &gateway.TraefikConfigForwardingTimeouts{
-				DialTimeout: "4s",
-			},
-		}
-		cfg.HTTP.Services[dwId].LoadBalancer.ServersTransport = dwId
+	cfg.HTTP.ServersTransports = map[string]*gateway.TraefikConfigServersTransport{}
+
+	cfg.HTTP.ServersTransports[dwId] = &gateway.TraefikConfigServersTransport{
+		ForwardingTimeouts: &gateway.TraefikConfigForwardingTimeouts{
+			DialTimeout: dialTimeout,
+		},
 	}
+	cfg.AddRetry(dwId, retries, initialInterval)
+	cfg.HTTP.Services[dwId].LoadBalancer.ServersTransport = dwId
 }
 
 // makes '/healthz' path of main endpoints reachable from the outside
