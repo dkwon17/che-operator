@@ -6,19 +6,18 @@ require (
 	github.com/Shopify/logrus-bugsnag v0.0.0-00010101000000-000000000000 // indirect
 	github.com/che-incubator/kubernetes-image-puller-operator v0.0.0-20210929175054-0128446f5af7
 	github.com/devfile/api/v2 v2.0.0-20220928161623-fe7c10eaa530
-	github.com/devfile/devworkspace-operator v0.17.0
+	github.com/devfile/devworkspace-operator v0.18.0
 	github.com/go-logr/logr v0.4.0
 	github.com/golang/mock v1.5.0
-	github.com/google/go-cmp v0.5.6
+	github.com/google/go-cmp v0.5.9
 	github.com/openshift/api v3.9.1-0.20190924102528-32369d4db2ad+incompatible
 	github.com/operator-framework/api v0.10.0
 	github.com/operator-framework/operator-lifecycle-manager v0.18.1
 	github.com/sirupsen/logrus v1.7.0
 	github.com/stretchr/testify v1.7.0
 	go.uber.org/zap v1.18.1
-	golang.org/x/mod v0.4.2
-	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
-	golang.org/x/tools v0.1.5 // indirect
+	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
+	golang.org/x/net v0.2.0
 	k8s.io/api v0.21.3
 	k8s.io/apiextensions-apiserver v0.21.3
 	k8s.io/apimachinery v0.21.3

@@ -460,4 +460,4 @@
 | [golang.org/x/mobile@d3739f865fa66d07c1f506505c18aac71a8ead6e](https://cs.opensource.google/go) | BSD-3-Clause | N/A |
 | [github.com/devfile/api/v2@fe7c10eaa530b12b19cfb0e22e221e753391304c](https://github.com/devfile/api.git) | Apache-2.0 | [clearlydefined](https://clearlydefined.io/definitions/git/github/devfile/api/fe7c10eaa530b12b19cfb0e22e221e753391304c) |
 | [github.com/che-incubator/kubernetes-image-puller-operator@0128446f5af78587c0427a35d693bbb8d24036bc](https://github.com/che-incubator/kubernetes-image-puller-operator.git) | EPL-2.0 | todo |
-| [github.com/devfile/devworkspace-operator@bd6bffe44a9cc064688214059dfe05865cdfe491](https://github.com/devfile/devworkspace-operator.git) | Apache-2.0 | [clearlydefined](https://clearlydefined.io/definitions/git/github/devfile/devworkspace-operator/bd6bffe44a9cc064688214059dfe05865cdfe491) |
+| [github.com/devfile/devworkspace-operator@75a25b42014caf308a30d1131eff1820bd3c0bd4](https://github.com/devfile/devworkspace-operator.git) | Apache-2.0 | [clearlydefined](https://clearlydefined.io/definitions/git/github/devfile/devworkspace-operator/75a25b42014caf308a30d1131eff1820bd3c0bd4) |
