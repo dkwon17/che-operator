@@ -33,7 +33,7 @@ const (
 	chePartOfLabelValue             string = "che.eclipse.org"
 	cheComponentLabel               string = "app.kubernetes.io/component"
 	cheComponentLabelValue          string = "workspaces-namespace"
-	cheUsernameAnnotation           string = "che.eclipse.org/username"
+	CheUsernameAnnotation           string = "che.eclipse.org/username"
 )
 
 type namespaceCache struct {
@@ -134,7 +134,7 @@ func (c *namespaceCache) examineNamespaceUnsafe(ctx context.Context, ns string) 
 	cheNamespace := labels[cheNamespaceLabel]
 	partOfLabel := labels[chePartOfLabel]
 	componentLabel := labels[cheComponentLabel]
-	username := annotations[cheUsernameAnnotation]
+	username := annotations[CheUsernameAnnotation]
 
 	ret := namespaceInfo{
 		IsWorkspaceNamespace: ownerUid != "" || (partOfLabel == chePartOfLabelValue && componentLabel == cheComponentLabelValue),
