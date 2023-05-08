@@ -21,6 +21,8 @@ jobs:
     steps:
     - name: Checkout source code
       uses: actions/checkout@v3
+      with:
+        repository: dkwon17/che-operator
     - name: Start minikube cluster
       id: run-minikube
       uses: che-incubator/setup-minikube-action@next
