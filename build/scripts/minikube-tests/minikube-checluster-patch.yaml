@@ -38,6 +38,7 @@ spec:
                 cpu: '400m'
               request:
                 cpu: '400m'
+            image: 'quay.io/dkwon17/che-server:user-profile-che-operator'
     dashboard:
       deployment:
         containers:
