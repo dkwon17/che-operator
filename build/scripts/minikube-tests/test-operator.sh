@@ -99,6 +99,75 @@ spec:
                   cpu: '20m'
 EOF
 
+  cat > /tmp/patch.yaml <<EOF
+apiVersion: org.eclipse.che/v2
+spec:
+  components:
+    pluginRegistry:
+      openVSXURL: https://open-vsx.org
+      deployment:
+        containers:
+          - resources:
+              request:
+                cpu: '20m'
+              limits:
+                cpu: '20m'
+    devfileRegistry:
+      deployment:
+        containers:
+          - resources:
+              request:
+                cpu: '20m'
+              limits:
+                cpu: '20m'
+    cheServer:
+      deployment:
+        containers:
+          - resources:
+              limits:
+                cpu: '400m'
+              request:
+                cpu: '400m'
+            image: 'quay.io/dkwon17/che-server:user-profile-che-operator'
+    dashboard:
+      deployment:
+        containers:
+          - resources:
+              request:
+                cpu: '40m'
+              limits:
+                cpu: '40m'
+  networking:
+    auth:
+      gateway:
+        deployment:
+          containers:
+            - name: gateway
+              resources:
+                request:
+                  cpu: '20m'
+                limits:
+                  cpu: '20m'
+            - name: configbump
+              resources:
+                request:
+                  cpu: '20m'
+                limits:
+                  cpu: '20m'
+            - name: oauth-proxy
+              resources:
+                request:
+                  cpu: '20m'
+                limits:
+                  cpu: '20m'
+            - name: kube-rbac-proxy
+              resources:
+                request:
+                  cpu: '20m'
+                limits:
+                  cpu: '20m'
+EOF
+
   chectl server:deploy \
     --batch \
     --platform minikube \
