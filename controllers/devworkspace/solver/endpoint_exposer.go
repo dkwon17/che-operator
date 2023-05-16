@@ -144,13 +144,51 @@ func (e *IngressExposer) initFrom(ctx context.Context, cl client.Client, cluster
 
 func (e *RouteExposer) getRouteForService(endpoint *EndpointInfo, username string, dwName string) routev1.Route {
 	targetEndpoint := intstr.FromInt(int(endpoint.port))
+	route := e.getRoute(endpoint, targetEndpoint, hostName(username, dwName, endpoint.endpointName, e.baseDomain))
+	if isSecureScheme(endpoint.scheme) {
+		e.applyTLSConfig(&route)
+	}
+	return route
+}
+
+func (e *RouteExposer) getLegacyRouteForService(endpoint *EndpointInfo) routev1.Route {
+	targetEndpoint := intstr.FromInt(int(endpoint.port))
+	route := e.getRoute(endpoint, targetEndpoint, legacyHostName(endpoint.order, e.devWorkspaceID, e.baseDomain))
+	if isSecureScheme(endpoint.scheme) {
+		e.applyTLSConfig(&route)
+	}
+	return route
+}
+
+func (e *IngressExposer) getIngressForService(endpoint *EndpointInfo, username string, dwName string) networkingv1.Ingress {
+	hostname := hostName(username, dwName, endpoint.endpointName, e.baseDomain)
+	ingress := e.getIngress(endpoint, hostname)
+
+	if isSecureScheme(endpoint.scheme) && e.tlsSecretName != "" {
+		e.applyTLSConfig(&ingress, hostname)
+	}
+	return ingress
+}
+
+func (e *IngressExposer) getLegacyIngressForService(endpoint *EndpointInfo) networkingv1.Ingress {
+	hostname := legacyHostName(endpoint.order, e.devWorkspaceID, e.baseDomain)
+	ingress := e.getIngress(endpoint, hostname)
+
+	if isSecureScheme(endpoint.scheme) && e.tlsSecretName != "" {
+		e.applyTLSConfig(&ingress, hostname)
+	}
+	return ingress
+}
+
+func (e *RouteExposer) getRoute(endpoint *EndpointInfo, targetEndpoint intstr.IntOrString, hostname string) routev1.Route {
 	labels := labels.Merge(
 		e.labels,
 		map[string]string{
 			dwconstants.DevWorkspaceIDLabel:    e.devWorkspaceID,
 			constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
 		})
-	route := routev1.Route{
+
+	return routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            getEndpointExposingObjectName(endpoint.componentName, e.devWorkspaceID, endpoint.port, endpoint.endpointName),
 			Namespace:       endpoint.service.Namespace,
@@ -159,7 +197,7 @@ func (e *RouteExposer) getRouteForService(endpoint *EndpointInfo, username strin
 			OwnerReferences: endpoint.service.OwnerReferences,
 		},
 		Spec: routev1.RouteSpec{
-			Host: hostName(username, dwName, endpoint.endpointName, e.baseDomain),
+			Host: hostname,
 			To: routev1.RouteTargetReference{
 				Kind: "Service",
 				Name: endpoint.service.Name,
@@ -169,27 +207,24 @@ func (e *RouteExposer) getRouteForService(endpoint *EndpointInfo, username strin
 			},
 		},
 	}
-
-	if isSecureScheme(endpoint.scheme) {
-		route.Spec.TLS = &routev1.TLSConfig{
-			InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
-			Termination:                   routev1.TLSTerminationEdge,
-		}
-
-		if e.tlsSecretKey != "" {
-			route.Spec.TLS.Key = e.tlsSecretKey
-			route.Spec.TLS.Certificate = e.tlsSecretCertificate
-		}
-	}
-
-	return route
 }
 
-func (e *IngressExposer) getIngressForService(endpoint *EndpointInfo, username string, dwName string) networkingv1.Ingress {
-	hostname := hostName(username, dwName, endpoint.endpointName, e.baseDomain)
+func (e *RouteExposer) applyTLSConfig(route *routev1.Route) {
+	route.Spec.TLS = &routev1.TLSConfig{
+		InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
+		Termination:                   routev1.TLSTerminationEdge,
+	}
+
+	if e.tlsSecretKey != "" {
+		route.Spec.TLS.Key = e.tlsSecretKey
+		route.Spec.TLS.Certificate = e.tlsSecretCertificate
+	}
+}
+
+func (e *IngressExposer) getIngress(endpoint *EndpointInfo, hostname string) networkingv1.Ingress {
 	ingressPathType := networkingv1.PathTypeImplementationSpecific
 
-	ingress := networkingv1.Ingress{
+	return networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getEndpointExposingObjectName(endpoint.componentName, e.devWorkspaceID, endpoint.port, endpoint.endpointName),
 			Namespace: endpoint.service.Namespace,
@@ -226,21 +261,32 @@ func (e *IngressExposer) getIngressForService(endpoint *EndpointInfo, username s
 			},
 		},
 	}
+}
 
-	if isSecureScheme(endpoint.scheme) && e.tlsSecretName != "" {
-		ingress.Spec.TLS = []networkingv1.IngressTLS{
-			{
-				Hosts:      []string{hostname},
-				SecretName: e.tlsSecretName,
-			},
-		}
+func (e *IngressExposer) applyTLSConfig(ingress *networkingv1.Ingress, hostname string) {
+	ingress.Spec.TLS = []networkingv1.IngressTLS{
+		{
+			Hosts:      []string{hostname},
+			SecretName: e.tlsSecretName,
+		},
 	}
+}
 
-	return ingress
+func (e *RouteExposer) getLegacyRoute() labels.Set {
+	return labels.Merge(
+		e.labels,
+		map[string]string{
+			dwconstants.DevWorkspaceIDLabel:    e.devWorkspaceID,
+			constants.KubernetesPartOfLabelKey: constants.CheEclipseOrg,
+		})
 }
 
 func hostName(username string, workspaceName string, endpointName string, baseDomain string) string {
 	return fmt.Sprintf("%s.%s.%s.%s", username, workspaceName, endpointName, baseDomain)
+}
+
+func legacyHostName(order int, workspaceID string, baseDomain string) string {
+	return fmt.Sprintf("%s-%d.%s", workspaceID, order, baseDomain)
 }
 
 func routeAnnotations(machineName string, endpointName string) map[string]string {
