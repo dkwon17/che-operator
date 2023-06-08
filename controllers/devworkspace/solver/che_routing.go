@@ -29,6 +29,7 @@ import (
 	"github.com/eclipse-che/che-operator/pkg/deploy/gateway"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/validation"
 
 	dwo "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
 	"github.com/devfile/devworkspace-operator/controllers/controller/devworkspacerouting/solvers"
@@ -359,9 +360,22 @@ func getEndpointPathStrategy(c client.Client, workspaceId string, namespace stri
 		useLegacyPaths = true
 	}
 
-	dwName, err := getNormalizedWkspName(c, namespace, dwRoutingName)
+	dwName := ""
+	routing := &dwo.DevWorkspaceRouting{}
+	err = c.Get(context.TODO(), client.ObjectKey{Name: dwRoutingName, Namespace: namespace}, routing)
 	if err != nil {
 		useLegacyPaths = true
+	} else {
+		dwName, err = getNormalizedWkspName(c, namespace, routing)
+		if err != nil {
+			useLegacyPaths = true
+		} else {
+			longestEndpointName := getLongestPublicEndpoint(routing)
+			subdomain := username + "-" + dwName + "-" + longestEndpointName
+			if errs := validation.IsValidLabelValue(subdomain); len(errs) > 0 {
+				useLegacyPaths = true
+			}
+		}
 	}
 
 	if useLegacyPaths {
@@ -421,12 +435,7 @@ func getUsernameFromNamespace(c client.Client, namespace string) (string, error)
 	return "", notFoundError
 }
 
-func getNormalizedWkspName(c client.Client, namespace string, routingName string) (string, error) {
-	routing := &dwo.DevWorkspaceRouting{}
-	err := c.Get(context.TODO(), client.ObjectKey{Name: routingName, Namespace: namespace}, routing)
-	if err != nil {
-		return "", err
-	}
+func getNormalizedWkspName(c client.Client, namespace string, routing *dwo.DevWorkspaceRouting) (string, error) {
 	return normalize(routing.ObjectMeta.OwnerReferences[0].Name), nil
 }
 
@@ -439,6 +448,21 @@ func normalize(username string) string {
 	result = r2.ReplaceAllString(result, "-")    // replace multiple '-' with single ones
 	result = r3.ReplaceAllString(result, "")     // trim dashes at beginning/end
 	return strings.ToLower(result)
+}
+
+func getLongestPublicEndpoint(routing *dwo.DevWorkspaceRouting) string {
+	longest := ""
+	for _, endpoints := range routing.Spec.Endpoints {
+		for _, e := range endpoints {
+			if dw.EndpointExposure(e.Exposure) != dw.PublicEndpointExposure {
+				continue
+			}
+			if len(e.Name) > len(longest) {
+				longest = e.Name
+			}
+		}
+	}
+	return longest
 }
 
 func (c *CheRoutingSolver) getInfraSpecificExposer(cheCluster *chev2.CheCluster, routing *dwo.DevWorkspaceRouting, objs *solvers.RoutingObjects, endpointStrategy EndpointStrategy) (func(info *EndpointInfo), error) {
