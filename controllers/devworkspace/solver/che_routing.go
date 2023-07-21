@@ -232,7 +232,7 @@ func (c *CheRoutingSolver) cheExposedEndpoints(cheCluster *chev2.CheCluster, wor
 
 	gatewayHost := cheCluster.GetCheHost()
 
-	endpointStrategy := getEndpointPathStrategy(c.client, workspaceID, routingObj.Services[0].Namespace, routingObj.Services[0].ObjectMeta.OwnerReferences[0].Name)
+	endpointStrategy := getEndpointPathStrategy(cheCluster, c.client, workspaceID, routingObj.Services[0].Namespace, routingObj.Services[0].ObjectMeta.OwnerReferences[0].Name)
 
 	for component, endpoints := range componentEndpoints {
 		for _, endpoint := range endpoints {
@@ -331,7 +331,7 @@ func (c *CheRoutingSolver) getGatewayConfigsAndFillRoutingObjects(cheCluster *ch
 	}
 
 	configs := make([]corev1.ConfigMap, 0)
-	endpointStrategy := getEndpointPathStrategy(c.client, workspaceID, routing.Namespace, routing.Name)
+	endpointStrategy := getEndpointPathStrategy(cheCluster, c.client, workspaceID, routing.Namespace, routing.Name)
 
 	// first do routing from main che-gateway into workspace service
 	if mainWsRouteConfig, err := provisionMainWorkspaceRoute(cheCluster, routing, cmLabels, endpointStrategy); err != nil {
@@ -352,29 +352,31 @@ func (c *CheRoutingSolver) getGatewayConfigsAndFillRoutingObjects(cheCluster *ch
 	return configs, nil
 }
 
-func getEndpointPathStrategy(c client.Client, workspaceId string, namespace string, dwRoutingName string) EndpointStrategy {
-	useLegacyPaths := false
-	username, err := getNormalizedUsername(c, namespace)
-	if err != nil {
-		useLegacyPaths = true
+func getEndpointPathStrategy(cheCluster *chev2.CheCluster, c client.Client, workspaceId string, namespace string, dwRoutingName string) EndpointStrategy {
+	useLegacyPaths := cheCluster.Spec.DevEnvironments.UseLegacyRouting
+	if true || !useLegacyPaths {
+		username, err := getNormalizedUsername(c, namespace)
+		if err != nil {
+			useLegacyPaths = true
+		}
+
+		dwName, err := getNormalizedWkspName(c, namespace, dwRoutingName)
+		if err != nil {
+			useLegacyPaths = true
+		}
+
+		if !useLegacyPaths {
+			strategy := new(UsernameWkspName)
+			strategy.username = username
+			strategy.workspaceName = dwName
+			strategy.workspaceID = workspaceId
+			return strategy
+		}
 	}
 
-	dwName, err := getNormalizedWkspName(c, namespace, dwRoutingName)
-	if err != nil {
-		useLegacyPaths = true
-	}
-
-	if useLegacyPaths {
-		strategy := new(Legacy)
-		strategy.workspaceID = workspaceId
-		return strategy
-	} else {
-		strategy := new(UsernameWkspName)
-		strategy.username = username
-		strategy.workspaceName = dwName
-		strategy.workspaceID = workspaceId
-		return strategy
-	}
+	strategy := new(Legacy)
+	strategy.workspaceID = workspaceId
+	return strategy
 }
 
 func getNormalizedUsername(c client.Client, namespace string) (string, error) {

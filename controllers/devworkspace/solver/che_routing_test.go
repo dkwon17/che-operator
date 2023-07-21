@@ -556,6 +556,150 @@ func TestCreateRelocatedObjectsK8SLegacy(t *testing.T) {
 	})
 }
 
+func TestCreateRelocatedObjectsK8SUseLegacyRouting(t *testing.T) {
+	infrastructure.InitializeForTesting(infrastructure.Kubernetes)
+
+	cl, _, objs := getSpecObjectsForManager(t, &chev2.CheCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       "che",
+			Namespace:  "ns",
+			Finalizers: []string{controller.FinalizerName},
+		},
+		Spec: chev2.CheClusterSpec{
+			Networking: chev2.CheClusterSpecNetworking{
+				Domain:   "down.on.earth",
+				Hostname: "over.the.rainbow",
+			},
+			DevEnvironments: chev2.CheClusterDevEnvironments{
+				// force legacy routing
+				UseLegacyRouting: true,
+			},
+		},
+	}, relocatableDevWorkspaceRouting(), userProfileSecret("username"))
+
+	t.Run("noIngresses", func(t *testing.T) {
+		if len(objs.Ingresses) != 0 {
+			t.Error()
+		}
+	})
+
+	t.Run("noRoutes", func(t *testing.T) {
+		if len(objs.Routes) != 0 {
+			t.Error()
+		}
+	})
+
+	t.Run("traefikConfig", func(t *testing.T) {
+		cms := &corev1.ConfigMapList{}
+		cl.List(context.TODO(), cms)
+
+		assert.Len(t, cms.Items, 2)
+
+		var workspaceMainCfg *corev1.ConfigMap
+		var workspaceCfg *corev1.ConfigMap
+		for _, cfg := range cms.Items {
+			if cfg.Name == "wsid-route" && cfg.Namespace == "ns" {
+				workspaceMainCfg = cfg.DeepCopy()
+			}
+			if cfg.Name == "wsid-route" && cfg.Namespace == "ws" {
+				workspaceCfg = cfg.DeepCopy()
+			}
+		}
+
+		assert.NotNil(t, workspaceMainCfg)
+
+		traefikMainWorkspaceConfig := workspaceMainCfg.Data["wsid.yml"]
+		assert.NotEmpty(t, traefikMainWorkspaceConfig)
+
+		traefikWorkspaceConfig := workspaceCfg.Data["workspace.yml"]
+		assert.NotEmpty(t, traefikWorkspaceConfig)
+
+		workspaceConfig := gateway.TraefikConfig{}
+		assert.NoError(t, yaml.Unmarshal([]byte(traefikWorkspaceConfig), &workspaceConfig))
+		assert.Len(t, workspaceConfig.HTTP.Routers, 2)
+
+		wsid := "wsid-m1-9999"
+		assert.Contains(t, workspaceConfig.HTTP.Routers, wsid)
+		assert.Len(t, workspaceConfig.HTTP.Routers[wsid].Middlewares, 2)
+		assert.Len(t, workspaceConfig.HTTP.Middlewares, 3)
+
+		mwares := []string{wsid + gateway.StripPrefixMiddlewareSuffix}
+		for _, mware := range mwares {
+			assert.Contains(t, workspaceConfig.HTTP.Middlewares, mware)
+			found := false
+			for _, r := range workspaceConfig.HTTP.Routers[wsid].Middlewares {
+				if r == mware {
+					found = true
+				}
+			}
+			assert.True(t, found)
+		}
+
+		workspaceMainConfig := gateway.TraefikConfig{}
+		assert.NoError(t, yaml.Unmarshal([]byte(traefikMainWorkspaceConfig), &workspaceMainConfig))
+		assert.Len(t, workspaceMainConfig.HTTP.Middlewares, 5)
+
+		wsid = "wsid"
+		mwares = []string{
+			wsid + gateway.AuthMiddlewareSuffix,
+			wsid + gateway.StripPrefixMiddlewareSuffix,
+			wsid + gateway.HeadersMiddlewareSuffix,
+			wsid + gateway.ErrorsMiddlewareSuffix,
+			wsid + gateway.RetryMiddlewareSuffix}
+		for _, mware := range mwares {
+			assert.Contains(t, workspaceMainConfig.HTTP.Middlewares, mware)
+
+			found := false
+			for _, r := range workspaceMainConfig.HTTP.Routers[wsid].Middlewares {
+				if r == mware {
+					found = true
+				}
+			}
+			assert.Truef(t, found, "traefik config route doesn't set middleware '%s'", mware)
+		}
+
+		t.Run("testEndpointInMainWorkspaceRoute", func(t *testing.T) {
+			assert.Contains(t, workspaceMainConfig.HTTP.Routers, wsid)
+			assert.Equal(t, workspaceMainConfig.HTTP.Routers[wsid].Service, wsid)
+			assert.Equal(t, workspaceMainConfig.HTTP.Routers[wsid].Rule, fmt.Sprintf("PathPrefix(`/%s`)", wsid))
+			assert.Equal(t, workspaceMainConfig.HTTP.Routers[wsid].Priority, 100+len("/"+wsid))
+		})
+
+		t.Run("testServerTransportInMainWorkspaceRoute", func(t *testing.T) {
+			serverTransportName := wsid
+
+			assert.Len(t, workspaceMainConfig.HTTP.ServersTransports, 1)
+			assert.Contains(t, workspaceMainConfig.HTTP.ServersTransports, serverTransportName)
+
+			assert.Len(t, workspaceMainConfig.HTTP.Services, 1)
+			assert.Contains(t, workspaceMainConfig.HTTP.Services, wsid)
+			assert.Equal(t, workspaceMainConfig.HTTP.Services[wsid].LoadBalancer.ServersTransport, serverTransportName)
+		})
+
+		t.Run("testHealthzEndpointInMainWorkspaceRoute", func(t *testing.T) {
+			healthzName := "wsid-9999-healthz"
+			assert.Contains(t, workspaceMainConfig.HTTP.Routers, healthzName)
+			assert.Equal(t, workspaceMainConfig.HTTP.Routers[healthzName].Service, wsid)
+			assert.Equal(t, workspaceMainConfig.HTTP.Routers[healthzName].Rule, "Path(`/wsid/m1/9999/healthz`)")
+			assert.Equal(t, workspaceMainConfig.HTTP.Routers[healthzName].Priority, 101+len("/"+wsid))
+			assert.NotContains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, "wsid"+gateway.AuthMiddlewareSuffix)
+			assert.Contains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, "wsid"+gateway.StripPrefixMiddlewareSuffix)
+			assert.NotContains(t, workspaceMainConfig.HTTP.Routers[healthzName].Middlewares, "wsid"+gateway.HeaderRewriteMiddlewareSuffix)
+		})
+
+		t.Run("testHealthzEndpointInWorkspaceRoute", func(t *testing.T) {
+			healthzName := "wsid-m1-9999-healthz"
+			assert.Contains(t, workspaceConfig.HTTP.Routers, healthzName)
+			assert.Equal(t, workspaceConfig.HTTP.Routers[healthzName].Service, healthzName)
+			assert.Equal(t, workspaceConfig.HTTP.Routers[healthzName].Rule, "Path(`/m1/9999/healthz`)")
+			assert.Equal(t, workspaceConfig.HTTP.Routers[healthzName].Priority, 101+len("/m1/9999"))
+			assert.NotContains(t, workspaceConfig.HTTP.Routers[healthzName].Middlewares, healthzName+gateway.AuthMiddlewareSuffix)
+			assert.Contains(t, workspaceConfig.HTTP.Routers[healthzName].Middlewares, healthzName+gateway.StripPrefixMiddlewareSuffix)
+		})
+
+	})
+}
+
 func TestCreateRelocatedObjectsOpenshift(t *testing.T) {
 	infrastructure.InitializeForTesting(infrastructure.OpenShiftv4)
 

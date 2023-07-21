@@ -7197,6 +7197,11 @@ spec:
                           label.'
                         type: string
                     type: object
+                  useLegacyRouting:
+                    default: false
+                    description: Enables legacy workspace url format for workspaces
+                      and endpoints.
+                    type: boolean
                   user:
                     description: User configuration.
                     properties:

@@ -168,6 +168,10 @@ type CheClusterDevEnvironments struct {
 	// User configuration.
 	// +optional
 	User *UserConfiguration `json:"user,omitempty"`
+	// Enables legacy workspace url format for workspaces and endpoints.
+	// +optional
+	// +kubebuilder:default:=false
+	UseLegacyRouting bool `json:"useLegacyRouting,omitempty"`
 }
 
 // Che components configuration.
