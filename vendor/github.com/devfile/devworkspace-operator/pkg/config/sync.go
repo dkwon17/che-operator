@@ -269,6 +269,12 @@ func mergeConfig(from, to *controller.OperatorConfiguration) {
 			}
 			to.Routing.ProxyConfig = proxy.MergeProxyConfigs(from.Routing.ProxyConfig, defaultConfig.Routing.ProxyConfig)
 		}
+		if from.Routing.TLSCertificateConfigmapRef != nil {
+			if to.Routing.TLSCertificateConfigmapRef == nil {
+				to.Routing.TLSCertificateConfigmapRef = &controller.ConfigmapReference{}
+			}
+			to.Routing.TLSCertificateConfigmapRef = mergeTLSCertificateConfigmapRef(from.Routing.TLSCertificateConfigmapRef, defaultConfig.Routing.TLSCertificateConfigmapRef)
+		}
 	}
 	if from.Workspace != nil {
 		if to.Workspace == nil {
@@ -337,6 +343,9 @@ func mergeConfig(from, to *controller.OperatorConfiguration) {
 			}
 			if from.Workspace.PersistUserHome.Enabled != nil {
 				to.Workspace.PersistUserHome.Enabled = from.Workspace.PersistUserHome.Enabled
+			}
+			if from.Workspace.PersistUserHome.DisableInitContainer != nil {
+				to.Workspace.PersistUserHome.DisableInitContainer = from.Workspace.PersistUserHome.DisableInitContainer
 			}
 		}
 		if from.Workspace.DefaultTemplate != nil {
@@ -424,6 +433,28 @@ func mergeContainerSecurityContext(base, patch *corev1.SecurityContext) *corev1.
 		return base
 	}
 	return patched
+}
+
+func mergeTLSCertificateConfigmapRef(operatorConfig, clusterConfig *controller.ConfigmapReference) *controller.ConfigmapReference {
+	if clusterConfig == nil {
+		return operatorConfig
+	}
+	if operatorConfig == nil {
+		return clusterConfig
+	}
+	mergedConfigmapReference := &controller.ConfigmapReference{
+		Name:      operatorConfig.Name,
+		Namespace: operatorConfig.Namespace,
+	}
+
+	if mergedConfigmapReference.Name == "" {
+		mergedConfigmapReference.Name = clusterConfig.Name
+	}
+	if mergedConfigmapReference.Namespace == "" {
+		mergedConfigmapReference.Namespace = clusterConfig.Namespace
+	}
+
+	return mergedConfigmapReference
 }
 
 func mergeResources(from, to *corev1.ResourceRequirements) *corev1.ResourceRequirements {
@@ -521,6 +552,9 @@ func GetCurrentConfigString(currConfig *controller.OperatorConfiguration) string
 		if workspace.PersistUserHome != nil {
 			if workspace.PersistUserHome.Enabled != nil && *workspace.PersistUserHome.Enabled != *defaultConfig.Workspace.PersistUserHome.Enabled {
 				config = append(config, fmt.Sprintf("workspace.persistUserHome.enabled=%t", *workspace.PersistUserHome.Enabled))
+			}
+			if workspace.PersistUserHome.DisableInitContainer != nil && *workspace.PersistUserHome.DisableInitContainer != *defaultConfig.Workspace.PersistUserHome.DisableInitContainer {
+				config = append(config, fmt.Sprintf("workspace.persistUserHome.disableInitContainer=%t", *workspace.PersistUserHome.DisableInitContainer))
 			}
 		}
 		if !reflect.DeepEqual(workspace.PodSecurityContext, defaultConfig.Workspace.PodSecurityContext) {
