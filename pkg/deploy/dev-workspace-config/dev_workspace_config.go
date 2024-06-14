@@ -17,7 +17,9 @@ import (
 	"fmt"
 
 	controllerv1alpha1 "github.com/devfile/devworkspace-operator/apis/controller/v1alpha1"
+	dwConstants "github.com/devfile/devworkspace-operator/pkg/constants"
 	chev2 "github.com/eclipse-che/che-operator/api/v2"
+	dwDefaults "github.com/eclipse-che/che-operator/controllers/devworkspace/defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
 	"github.com/eclipse-che/che-operator/pkg/common/constants"
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
@@ -27,6 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -104,6 +107,8 @@ func updateWorkspaceConfig(ctx *chetypes.DeployContext, operatorConfig *controll
 	updatePersistUserHomeConfig(devEnvironments.PersistUserHome, operatorConfig.Workspace)
 
 	updateWorkspaceImagePullPolicy(devEnvironments.ImagePullPolicy, operatorConfig.Workspace)
+
+	updateFuseOverlay(ctx.CheCluster.IsFuseOverlayEnabled(), ctx, operatorConfig.Workspace)
 
 	// If the CheCluster has a configured proxy, or if the Che Operator has detected a proxy configuration,
 	// we need to disable automatic proxy handling in the DevWorkspace Operator as its implementation collides
@@ -223,6 +228,54 @@ func updateProjectCloneConfig(devEnvironments *chev2.CheClusterDevEnvironments, 
 	workspaceConfig.ProjectCloneConfig.ImagePullPolicy = container.ImagePullPolicy
 	workspaceConfig.ProjectCloneConfig.Env = container.Env
 	workspaceConfig.ProjectCloneConfig.Resources = cheResourcesToCoreV1Resources(container.Resources)
+}
+
+func updateFuseOverlay(enabled bool, ctx *chetypes.DeployContext, workspaceConfig *controllerv1alpha1.WorkspaceConfig) error {
+	fmt.Println("updateFuseOverlay")
+	configmapName := "che-fuse-overlay-config"
+	fmt.Println("updateFuseOverlay A")
+	if !enabled {
+		fmt.Println("updateFuseOverlay B")
+		delete(workspaceConfig.PodAnnotations, "io.kubernetes.cri-o.Devices")
+		fmt.Println("updateFuseOverlay C")
+		_, err := deploy.Delete(ctx, types.NamespacedName{Name: configmapName}, &corev1.ConfigMap{})
+		return err
+	}
+	fmt.Println("updateFuseOverlay D")
+	if workspaceConfig.PodAnnotations == nil {
+		workspaceConfig.PodAnnotations = map[string]string{}
+	}
+	workspaceConfig.PodAnnotations["io.kubernetes.cri-o.Devices"] = "/dev/fuse"
+
+	storageConfig := `[storage]
+driver = "overlay"
+
+[storage.options.overlay]
+mount_program="/usr/bin/fuse-overlayfs"`
+
+	cfg := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ConfigMap",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configmapName,
+			Namespace: ctx.CheCluster.Namespace,
+			Labels:    dwDefaults.GetLabelsForComponent(ctx.CheCluster, constants.WorkspacesConfig),
+			Annotations: map[string]string{
+				dwConstants.DevWorkspaceMountAsAnnotation:   dwConstants.DevWorkspaceMountAsSubpath,
+				dwConstants.DevWorkspaceMountPathAnnotation: "/home/user/.config/containers",
+			},
+		},
+		Data: map[string]string{
+			"storage.conf": storageConfig,
+		},
+	}
+	fmt.Println("updateFuseOverlay E")
+	_, err := deploy.Sync(ctx, cfg, deploy.ConfigMapDiffOpts)
+	fmt.Println("updateFuseOverlay F")
+	fmt.Printf("updateFuseOverlay err: %v\n", err)
+	return err
 }
 
 func disableDWOProxy(routingConfig *controllerv1alpha1.RoutingConfig) {

@@ -189,6 +189,9 @@ type CheClusterDevEnvironments struct {
 	// +optional
 	// +kubebuilder:validation:Enum=Always;IfNotPresent;Never
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+	// Disables fuse overlayfs for workspaces.
+	// +optional
+	DisableFuseOverlay *bool `json:"disableFuseOverlay,omitempty"`
 }
 
 // Che components configuration.
@@ -976,6 +979,13 @@ func (c *CheCluster) IsContainerBuildCapabilitiesEnabled() bool {
 	}
 
 	return !disableContainerBuildCapabilitiesParsed
+}
+
+func (c *CheCluster) IsFuseOverlayEnabled() bool {
+	if c.Spec.DevEnvironments.DisableFuseOverlay != nil {
+		return !(*c.Spec.DevEnvironments.DisableFuseOverlay)
+	}
+	return false
 }
 
 func (c *CheCluster) IsOpenShiftSecurityContextConstraintSet() bool {
