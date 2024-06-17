@@ -6821,6 +6821,9 @@ spec:
                              - SETGID
                              - SETUID
                       type: boolean
+                    disableFuseOverlay:
+                      description: Disables fuse overlayfs for workspaces.
+                      type: boolean
                     gatewayContainer:
                       description: GatewayContainer configuration.
                       properties:
