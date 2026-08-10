@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -13,6 +13,7 @@
 package imagepuller
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -25,12 +26,20 @@ import (
 	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
+	"github.com/eclipse-che/che-operator/pkg/common/utils"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
 
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 )
 
-const externalImagesStoreFileName = "external_images.txt"
+const (
+	externalImagesStoreFileName = "external_images.txt"
+
+	dwoDeploymentName          = "devworkspace-controller-manager"
+	dwoProjectCloneImageEnvVar = "RELATED_IMAGE_project_clone"
+)
 
 type ExternalImagesProvider struct {
 	// Path to store retrieved external images
@@ -76,6 +85,12 @@ func (p *ExternalImagesProvider) read(ctx *chetypes.DeployContext) ([]string, er
 	var images []string
 	images = append(images, editorsImages...)
 	images = append(images, samplesImages...)
+
+	projectCloneImage := p.fetchDWOProjectCloneImage(ctx)
+	if projectCloneImage != "" {
+		images = append(images, projectCloneImage)
+	}
+
 	sort.Strings(images)
 	images = slices.Compact(images)
 
@@ -157,6 +172,35 @@ func (p *ExternalImagesProvider) parseSampleDevfile(rawData []byte) ([]string, e
 	}
 
 	return p.extractContainerImages(devfile), nil
+}
+
+func (p *ExternalImagesProvider) fetchDWOProjectCloneImage(ctx *chetypes.DeployContext) string {
+	deployment := &appsv1.Deployment{}
+	key := types.NamespacedName{
+		Name:      dwoDeploymentName,
+		Namespace: ctx.CheCluster.Namespace,
+	}
+
+	exists, err := ctx.ClusterAPI.NonCachingClientWrapper.GetIgnoreNotFound(context.TODO(), key, deployment)
+	if err != nil {
+		logger.Info("Failed to get DevWorkspace controller deployment", "error", err)
+		return ""
+	}
+
+	if !exists {
+		logger.Info("DevWorkspace controller deployment not found, skipping project clone image")
+		return ""
+	}
+
+	for _, container := range deployment.Spec.Template.Spec.Containers {
+		image := utils.GetEnvByName(dwoProjectCloneImageEnvVar, container.Env)
+		if image != "" {
+			return image
+		}
+	}
+
+	logger.Info("Project clone image env var not found in DevWorkspace controller deployment")
+	return ""
 }
 
 // fetchEditorImages fetches list of images from editors:
