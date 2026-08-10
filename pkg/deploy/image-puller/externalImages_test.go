@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2024 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/common/test"
 
 	"testing"
@@ -35,22 +36,27 @@ func TestGetExternalImages(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name:           "both editors and samples images",
-			editorsFile:    "image-puller-resources-test/editors.json",
-			samplesFile:    "image-puller-resources-test/samples.json",
-			expectedImages: []string{"image_1", "image_2", "image_3"},
+			name:        "both editors and samples images",
+			editorsFile: "image-puller-resources-test/editors.json",
+			samplesFile: "image-puller-resources-test/samples.json",
 		},
 		{
-			name:           "no external images",
-			editorsFile:    "image-puller-resources-test/empty.json",
-			samplesFile:    "image-puller-resources-test/empty.json",
-			expectedImages: nil,
+			name:        "no external images",
+			editorsFile: "image-puller-resources-test/empty.json",
+			samplesFile: "image-puller-resources-test/empty.json",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := test.NewCtxBuilder().Build()
+			gatewayImage := defaults.GetGatewayImage(ctx.CheCluster)
+
+			if tc.name == "both editors and samples images" {
+				tc.expectedImages = []string{"image_1", "image_2", "image_3", gatewayImage}
+			} else {
+				tc.expectedImages = []string{gatewayImage}
+			}
 
 			editorsEndpointUrl := getDashboardEditorsInternalAPIUrl(ctx)
 			samplesEndpointUrl := getDashboardSamplesInternalAPIUrl(ctx)
@@ -86,3 +92,4 @@ func TestGetExternalImages(t *testing.T) {
 		})
 	}
 }
+

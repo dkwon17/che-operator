@@ -14,12 +14,14 @@ package imagepuller
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	chev1alpha1 "github.com/che-incubator/kubernetes-image-puller-operator/api/v1alpha1"
+	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
 	"github.com/eclipse-che/che-operator/pkg/deploy"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -36,6 +38,11 @@ import (
 )
 
 func TestImagePullerConfiguration(t *testing.T) {
+	cheCluster := InitCheCluster(chev2.ImagePuller{Enable: true})
+	gatewayImage := defaults.GetGatewayImage(cheCluster)
+	gatewayImagesSpec := fmt.Sprintf("image-1-0=image_1;image-2-1=image_2;che--traefik-2=%s;", gatewayImage)
+	gatewayImagesSpec3 := fmt.Sprintf("image-1-0=image_1;image-2-1=image_2;image-3-2=image_3;che--traefik-3=%s;", gatewayImage)
+
 	type testCase struct {
 		name                string
 		cheCluster          *chev2.CheCluster
@@ -46,15 +53,13 @@ func TestImagePullerConfiguration(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name: "case #1: KubernetesImagePuller with defaults",
-			cheCluster: InitCheCluster(chev2.ImagePuller{
-				Enable: true,
-			}),
+			name:             "case #1: KubernetesImagePuller with defaults",
+			cheCluster:       cheCluster,
 			testCaseFilePath: "image-puller-resources-test/imagepuller_testcase_1.json",
 			expectedImagePuller: InitImagePuller(chev1alpha1.KubernetesImagePullerSpec{
 				DeploymentName: defaultDeploymentName,
 				ConfigMapName:  defaultConfigMapName,
-				Images:         "image-1-0=image_1;image-2-1=image_2;",
+				Images:         gatewayImagesSpec,
 			}),
 		},
 		{
@@ -90,7 +95,7 @@ func TestImagePullerConfiguration(t *testing.T) {
 			expectedImagePuller: InitImagePuller(chev1alpha1.KubernetesImagePullerSpec{
 				DeploymentName: defaultDeploymentName,
 				ConfigMapName:  defaultConfigMapName,
-				Images:         "image-1-0=image_1;image-2-1=image_2;image-3-2=image_3;",
+				Images:         gatewayImagesSpec3,
 			}),
 		},
 		{

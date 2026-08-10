@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2023 Red Hat, Inc.
+// Copyright (c) 2019-2026 Red Hat, Inc.
 // This program and the accompanying materials are made
 // available under the terms of the Eclipse Public License 2.0
 // which is available at https://www.eclipse.org/legal/epl-2.0/
@@ -25,9 +25,9 @@ import (
 	"time"
 
 	"github.com/eclipse-che/che-operator/pkg/common/chetypes"
-	"sigs.k8s.io/yaml"
-
 	defaults "github.com/eclipse-che/che-operator/pkg/common/operator-defaults"
+	"github.com/eclipse-che/che-operator/pkg/deploy/devworkspace"
+	"sigs.k8s.io/yaml"
 )
 
 const externalImagesStoreFileName = "external_images.txt"
@@ -76,6 +76,21 @@ func (p *ExternalImagesProvider) read(ctx *chetypes.DeployContext) ([]string, er
 	var images []string
 	images = append(images, editorsImages...)
 	images = append(images, samplesImages...)
+
+	projectCloneImage := devworkspace.GetProjectCloneImage(
+		ctx.Context,
+		ctx.ClusterAPI.NonCachingClientWrapper,
+		ctx.DWONamespace,
+	)
+	if projectCloneImage != "" {
+		images = append(images, projectCloneImage)
+	}
+
+	gatewayImage := defaults.GetGatewayImage(ctx.CheCluster)
+	if gatewayImage != "" {
+		images = append(images, gatewayImage)
+	}
+
 	sort.Strings(images)
 	images = slices.Compact(images)
 
